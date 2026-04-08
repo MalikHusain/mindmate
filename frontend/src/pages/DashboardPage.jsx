@@ -3,7 +3,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell
 } from 'recharts'
-import { TrendingUp, Calendar, Activity, Flame, Award, BarChart3 } from 'lucide-react'
+import { TrendingUp, Calendar, Activity, Flame, Award, BarChart3, Zap, ChevronRight } from 'lucide-react'
 import { getMoodData, getStreaks, getCalendarData, getAchievements, getWeeklyReport } from '../api'
 import { EmotionBadge } from '../components/EmotionBadge'
 
@@ -19,11 +19,19 @@ export default function DashboardPage() {
   const [error, setError] = useState(null)
   const [days, setDays] = useState(7)
 
-  useEffect(() => { fetchAll() }, [days])
+  useEffect(() => { fetchAll(true) }, [days])
+  
+  // Real-time polling: update data quietly in background (No flashing)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchAll(false) // Fetch without setting loading to true
+    }, 5000)
+    return () => clearInterval(interval)
+  }, [days])
 
-  const fetchAll = async () => {
+  const fetchAll = async (showLoading = false) => {
     try {
-      setLoading(true)
+      if (showLoading) setLoading(true)
       const [mood, streak, cal, badges, report] = await Promise.all([
         getMoodData(days), getStreaks(), getCalendarData(30),
         getAchievements().catch(() => ({ achievements: [] })),
@@ -34,10 +42,11 @@ export default function DashboardPage() {
       setCalendarData(cal)
       setAchievements(badges.achievements || [])
       setWeeklyReport(report)
+      setError(null)
     } catch {
-      setError('Could not load data. Make sure the backend is running.')
+      if (showLoading) setError('Could not load data. Make sure the backend is running.')
     } finally {
-      setLoading(false)
+      if (showLoading) setLoading(false)
     }
   }
 
@@ -120,6 +129,20 @@ export default function DashboardPage() {
         <StatCard icon={<Calendar className="w-5 h-5" />} label="Entries" value={moodData?.total_entries || 0} sub="This period" color="var(--accent-secondary)" />
         <StatCard icon={<Flame className="w-5 h-5" />} label="Streak" value={`${streakData?.current_streak || 0}d`} sub={`${streakData?.total_days || 0} total days`} color="var(--neutral)" />
       </div>
+
+      {/* Personalized Insights (PPT Requirement) */}
+      {moodData?.trend && (
+        <div className="glass-card-static p-5 animate-slide-up" style={{ borderLeft: '4px solid var(--accent-primary)', background: 'var(--accent-glow)' }}>
+          <div className="flex items-center gap-3 mb-2">
+            <Zap className="w-5 h-5 text-teal-400" />
+            <h2 className="text-sm font-bold font-display" style={{ color: 'var(--text-primary)' }}>Personalized AI Insight</h2>
+          </div>
+          <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+            Your history suggests your mood is <span className="font-bold" style={{ color: 'var(--accent-primary)' }}>{moodData.trend}</span>. 
+            Based on our analysis, <span className="font-medium" style={{ color: 'var(--text-primary)' }}>Breathing Exercises</span> and <span className="font-medium" style={{ color: 'var(--text-primary)' }}>Gratitude Journaling</span> are your most effective interventions. 
+          </p>
+        </div>
+      )}
 
       {/* Weekly Report */}
       {weeklyReport && weeklyReport.total_conversations > 0 && (

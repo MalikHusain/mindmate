@@ -1,275 +1,585 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import {
-  Brain, MessageCircle, BarChart3, Sparkles, Wind, BookOpen,
-  Shield, ArrowRight, ChevronDown, Sun, Moon, Mic, Heart as HeartIcon,
-  Award, Zap, Lock, Users, Globe
-} from 'lucide-react'
-import { useTheme } from '../ThemeContext'
 
-const FEATURES = [
-  { icon: <MessageCircle className="w-6 h-6" />, title: 'AI Emotional Chat', desc: 'Share how you feel and receive empathetic, motivational responses powered by advanced AI with real-time emotion detection.', color: 'var(--accent-primary)' },
-  { icon: <BarChart3 className="w-6 h-6" />, title: 'Mood Analytics', desc: 'Interactive dashboards with mood trends, emotion pie charts, 30-day calendar heatmap, and streak tracking.', color: 'var(--accent-secondary)' },
-  { icon: <Mic className="w-6 h-6" />, title: 'Voice Input', desc: 'Speak your feelings using voice recognition. Sometimes talking is easier than typing.', color: 'var(--accent-tertiary)' },
-  { icon: <Wind className="w-6 h-6" />, title: 'Guided Breathing', desc: 'Clinically-validated breathing exercises with animated visual guides — Box, 4-7-8, and Calming techniques.', color: 'var(--positive)' },
-  { icon: <BookOpen className="w-6 h-6" />, title: 'Journal & Gratitude', desc: 'Express yourself through mood journaling and daily gratitude tracking to build positive thinking patterns.', color: 'var(--neutral)' },
-  { icon: <Shield className="w-6 h-6" />, title: 'Crisis Safety Net', desc: 'Auto-detects crisis signals and instantly provides emergency helplines. Your safety comes first, always.', color: 'var(--negative)' },
-  { icon: <Award className="w-6 h-6" />, title: 'Achievement Badges', desc: 'Earn badges for consistent self-care — First Chat, 7-Day Streak, Gratitude Guru, and more.', color: '#f59e0b' },
-  { icon: <Sparkles className="w-6 h-6" />, title: 'Weekly Reports', desc: 'Personalized weekly progress summaries with mood trajectory analysis and tailored recommendations.', color: '#ec4899' },
-]
+/* ─── Inject Google Fonts once ───────────────────────────────────────── */
+if (!document.getElementById('mm-fonts')) {
+  const l1 = document.createElement('link'); l1.id = 'mm-fonts'; l1.rel = 'stylesheet'
+  l1.href = 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700&display=swap'
+  document.head.appendChild(l1)
+  const l2 = document.createElement('link'); l2.rel = 'stylesheet'
+  l2.href = 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap'
+  document.head.appendChild(l2)
+}
 
-const TECH_STACK = [
-  { name: 'React.js', desc: 'Frontend Framework' },
-  { name: 'Flask', desc: 'Backend API' },
-  { name: 'MongoDB Atlas', desc: 'Cloud Database' },
-  { name: 'Gemini AI', desc: 'NLP Engine' },
-  { name: 'Recharts', desc: 'Data Visualization' },
-  { name: 'Web Speech API', desc: 'Voice Recognition' },
-]
+/* ─── Tokens ──────────────────────────────────────────────────────────── */
+const C = {
+  primary:       '#006162',
+  primaryCont:   '#2c7a7b',
+  primaryFixed:  '#a5eff0',
+  secondary:     '#006398',
+  secondaryCont: '#6cbdfe',
+  secondaryFixed:'#cde5ff',
+  surface:       '#f9f9f8',
+  surfaceBright: '#ffffff',
+  surfaceCont:   '#eeeeed',
+  surfaceContLow:'#f4f4f3',
+  surfaceContH2: '#e2e2e2',
+  onSurface:     '#1a1c1c',
+  onSurfaceVar:  '#3f4949',
+  outline:       '#6f7979',
+  outlineVar:    '#bec9c8',
+}
 
-export default function LandingPage() {
-  const navigate = useNavigate()
-  const { theme, toggleTheme } = useTheme()
+const font = {
+  headline: '"Plus Jakarta Sans", sans-serif',
+  body:     '"Manrope", sans-serif',
+}
 
+/* ─── Icon ────────────────────────────────────────────────────────────── */
+function Icon({ name, size = 24, color, filled = false, style = {} }) {
   return (
-    <div className="min-h-screen">
-      {/* ═══ FIXED LANDING NAV ═══ */}
-      <nav className="landing-nav">
-        <div className="landing-nav-inner">
-          <div className="flex items-center gap-2.5">
-            <div className="mindmate-logo-sm">🧠</div>
-            <span className="font-display gradient-text text-lg font-bold">MindMate</span>
+    <span style={{
+      fontFamily: '"Material Symbols Outlined"',
+      fontWeight: 400,
+      fontStyle: 'normal',
+      fontSize: size,
+      lineHeight: 1,
+      display: 'inline-block',
+      userSelect: 'none',
+      color,
+      fontVariationSettings: filled
+        ? "'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24"
+        : "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24",
+      ...style,
+    }}>
+      {name}
+    </span>
+  )
+}
+
+/* ─── Button ──────────────────────────────────────────────────────────── */
+function Btn({ children, onClick, outline = false, style = {} }) {
+  const [hov, setHov] = useState(false)
+  return (
+    <button onClick={onClick}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        background: outline ? C.surfaceBright : `linear-gradient(135deg,${C.primary},${C.primaryCont})`,
+        color: outline ? C.primary : '#fff',
+        border: 'none', borderRadius: 9999, cursor: 'pointer',
+        padding: '1rem 2.5rem',
+        fontFamily: font.body, fontWeight: 700, fontSize: '1rem',
+        transition: 'all .2s',
+        boxShadow: hov && !outline ? '0 8px 28px rgba(0,97,98,.32)' : 'none',
+        transform: hov ? 'scale(1.03)' : 'scale(1)',
+        whiteSpace: 'nowrap',
+        ...style,
+      }}>
+      {children}
+    </button>
+  )
+}
+
+/* ─── Nav ─────────────────────────────────────────────────────────────── */
+function Nav({ nav }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <style>{`
+        .mm-nav-links{display:flex!important}
+        .mm-hamburger{display:none!important}
+        @media(max-width:768px){
+          .mm-nav-links{display:none!important}
+          .mm-hamburger{display:flex!important}
+        }
+      `}</style>
+      <header style={{
+        position:'fixed',top:0,left:0,right:0,zIndex:50,
+        background:'rgba(249,249,248,.88)',
+        backdropFilter:'blur(20px)',WebkitBackdropFilter:'blur(20px)',
+        borderBottom:`1px solid ${C.outlineVar}44`,
+      }}>
+        <div style={{
+          maxWidth:1280,margin:'0 auto',padding:'0 2rem',
+          display:'flex',alignItems:'center',justifyContent:'space-between',
+          height:72,boxSizing:'border-box',
+        }}>
+          {/* Logo */}
+          <div style={{display:'flex',alignItems:'center',gap:8}}>
+            <Icon name="spa" size={28} color={C.primary}/>
+            <span style={{
+              fontFamily:font.headline,fontWeight:800,fontSize:'1.35rem',
+              background:`linear-gradient(135deg,${C.primary},${C.secondary})`,
+              WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',backgroundClip:'text',
+            }}>MindMate</span>
           </div>
-          <div className="flex items-center gap-3">
-            <button onClick={toggleTheme} className="landing-theme-btn" aria-label="Toggle theme">
-              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-            </button>
-            <button onClick={() => navigate('/chat')} className="btn-gradient px-5 py-2 text-sm rounded-xl">
+
+          {/* Desktop links */}
+          <div className="mm-nav-links" style={{alignItems:'center',gap:40}}>
+            {['Features','Process','Stories'].map((l,i)=>(
+              <a key={l} href={`#${l.toLowerCase()}`} style={{
+                fontFamily:font.body,fontWeight:i===0?700:500,
+                color:i===0?C.primary:C.onSurfaceVar,
+                textDecoration:'none',fontSize:'.95rem',transition:'color .2s',
+              }}
+              onMouseEnter={e=>e.target.style.color=C.primary}
+              onMouseLeave={e=>e.target.style.color=i===0?C.primary:C.onSurfaceVar}>
+                {l}
+              </a>
+            ))}
+            <a href="/login" style={{
+              fontFamily:font.body,fontWeight:600,color:C.onSurfaceVar,
+              textDecoration:'none',fontSize:'.95rem',transition:'color .2s',
+            }} onMouseEnter={e=>e.target.style.color=C.primary} onMouseLeave={e=>e.target.style.color=C.onSurfaceVar}>
+              Login
+            </a>
+            <Btn onClick={()=>nav('/login')} style={{padding:'.65rem 1.75rem',fontSize:'.9rem'}}>Get Started</Btn>
+          </div>
+
+          {/* Hamburger */}
+          <button className="mm-hamburger"
+            onClick={()=>setOpen(!open)}
+            style={{background:'none',border:'none',cursor:'pointer',alignItems:'center',justifyContent:'center'}}>
+            <Icon name={open?'close':'menu'} size={28} color={C.primary}/>
+          </button>
+        </div>
+
+        {/* Mobile menu */}
+        {open&&(
+          <div style={{
+            background:C.surface,borderTop:`1px solid ${C.outlineVar}33`,
+            padding:'1rem 2rem 1.5rem',display:'flex',flexDirection:'column',gap:16,
+          }}>
+            {['Features','Process','Stories'].map(l=>(
+              <a key={l} href={`#${l.toLowerCase()}`} onClick={()=>setOpen(false)} style={{
+                fontFamily:font.body,fontWeight:600,color:C.onSurface,textDecoration:'none',fontSize:'1rem',
+              }}>{l}</a>
+            ))}
+            <a href="/login" onClick={()=>setOpen(false)} style={{
+              fontFamily:font.body,fontWeight:600,color:C.onSurface,textDecoration:'none',fontSize:'1rem',
+            }}>Login</a>
+            <Btn onClick={()=>{setOpen(false);nav('/login')}} style={{alignSelf:'flex-start',padding:'.75rem 2rem'}}>
               Get Started
-            </button>
+            </Btn>
+          </div>
+        )}
+      </header>
+    </>
+  )
+}
+
+/* ─── Hero ────────────────────────────────────────────────────────────── */
+function Hero({ nav }) {
+  return (
+    <section id="features" style={{position:'relative',overflow:'hidden',minHeight:760,display:'flex',alignItems:'center',paddingTop:96,paddingBottom:80}}>
+      <style>{`
+        .hero-grid{display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:center}
+        .hero-btns{display:flex;gap:16px;flex-wrap:wrap}
+        @media(max-width:1024px){.hero-grid{grid-template-columns:1fr!important}}
+        @media(max-width:640px){.hero-btns{flex-direction:column;width:100%}.hero-btns button{width:100%}}
+      `}</style>
+
+      {/* Blobs */}
+      <div style={{position:'absolute',inset:0,zIndex:0,overflow:'hidden'}}>
+        <div style={{position:'absolute',top:'-10%',right:'-10%',width:600,height:600,background:`${C.primaryFixed}2a`,borderRadius:'50%',filter:'blur(120px)'}}/>
+        <div style={{position:'absolute',bottom:'-5%',left:'-5%',width:400,height:400,background:`${C.secondaryFixed}2a`,borderRadius:'50%',filter:'blur(100px)'}}/>
+      </div>
+
+      <div style={{maxWidth:1280,margin:'0 auto',padding:'0 2rem',position:'relative',zIndex:1,width:'100%',boxSizing:'border-box'}}>
+        <div className="hero-grid">
+          {/* Left */}
+          <div style={{display:'flex',flexDirection:'column',gap:28,alignItems:'flex-start'}}>
+            <div style={{display:'inline-flex',alignItems:'center',gap:8,padding:'.5rem 1rem',background:C.surfaceContLow,borderRadius:9999}}>
+              <Icon name="auto_awesome" size={16} color={C.primary}/>
+              <span style={{fontFamily:font.body,fontSize:'.7rem',fontWeight:700,color:C.primary,letterSpacing:'.12em',textTransform:'uppercase'}}>
+                New: AI Pulse Technology
+              </span>
+            </div>
+
+            <h1 style={{fontFamily:font.headline,fontWeight:800,fontSize:'clamp(2.2rem,5vw,4.25rem)',lineHeight:1.1,letterSpacing:'-.02em',color:C.onSurface,margin:0}}>
+              Your Compassionate AI Companion for{' '}
+              <span style={{background:`linear-gradient(135deg,${C.primary},${C.secondary})`,WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',backgroundClip:'text'}}>
+                Mental Well-being
+              </span>
+            </h1>
+
+            <p style={{fontFamily:font.body,fontSize:'clamp(1rem,1.5vw,1.15rem)',color:C.onSurfaceVar,lineHeight:1.75,maxWidth:520,margin:0}}>
+              MindMate uses empathetic AI to provide a safe haven for your thoughts. Navigate life's challenges with 24/7 support designed to help you breathe, reflect, and grow.
+            </p>
+
+            <div className="hero-btns">
+              <Btn onClick={()=>nav('/chat')}>Start Your Journey</Btn>
+              <Btn outline>Watch Video</Btn>
+            </div>
+          </div>
+
+          {/* Right */}
+          <div style={{position:'relative'}}>
+            <div style={{borderRadius:'3rem',overflow:'hidden',background:C.surfaceContLow,boxShadow:'0 32px 80px rgba(0,97,98,.18)',position:'relative',aspectRatio:'1/1'}}>
+              <img
+                src="https://lh3.googleusercontent.com/aida-public/AB6AXuAmuofbc64NapB4U1d78Kq_KQ40F6QCMbuI7C5H8N7kx0u84m4wHIwwyydbva2gGyUVq7e4_UaLxITg_iKEsZ0a5eo7i7HEccd3lWpDR8_PGboRd9osEms6P9z18Z-c8t4gu7qsNyGgixMYi9TD1H_4TDApvdkZw5CbIgpAA_IbL6KRw-MqUHtItASvPW5SJGfRoEsn-ewjF7XWeSO-JxJlx_dq19ykmTJRiWgQZEnhGixDX5i-q_4OQJlfBkCIl4yHVyf1Bh7u2_0Z"
+                alt="AI Companion"
+                style={{width:'100%',height:'100%',objectFit:'cover',display:'block',transition:'transform .7s'}}
+                onMouseEnter={e=>e.target.style.transform='scale(1.05)'}
+                onMouseLeave={e=>e.target.style.transform='scale(1)'}
+              />
+              <div style={{position:'absolute',inset:0,background:`linear-gradient(to top,${C.primary}4d,transparent)`}}/>
+              {/* Floating card */}
+              <div style={{
+                position:'absolute',bottom:28,left:28,right:28,
+                background:'rgba(255,255,255,.85)',backdropFilter:'blur(24px)',WebkitBackdropFilter:'blur(24px)',
+                borderRadius:'1rem',padding:'1.25rem 1.5rem',
+                boxShadow:'0 8px 32px rgba(0,0,0,.12)',border:'1px solid rgba(255,255,255,.3)',
+                display:'flex',alignItems:'center',gap:16,
+              }}>
+                <div style={{width:48,height:48,background:C.primary,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                  <Icon name="graphic_eq" size={22} color="#fff"/>
+                </div>
+                <div>
+                  <p style={{fontFamily:font.body,fontWeight:700,color:C.onSurface,margin:0,fontSize:'.95rem'}}>"I'm here for you."</p>
+                  <p style={{fontFamily:font.body,fontSize:'.8rem',color:C.onSurfaceVar,fontStyle:'italic',margin:'2px 0 0'}}>Active Listening Mode</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </nav>
+      </div>
+    </section>
+  )
+}
 
-      {/* ═══════ HERO ═══════ */}
-      <section className="landing-hero">
-        <div className="landing-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', width: '100%' }}>
-          <div className="mindmate-logo-lg animate-scale-in" style={{ display: 'flex', justifyContent: 'center' }}>🧠</div>
-
-          <h1
-            className="text-4xl sm:text-5xl md:text-7xl font-black font-display gradient-text mb-4 animate-fade-in-up"
-            style={{ lineHeight: 1.1, width: '100%', textAlign: 'center' }}
-          >
-            MindMate
-          </h1>
-
-          <p
-            className="text-lg sm:text-xl md:text-2xl max-w-2xl mx-auto mb-3 animate-fade-in-up font-display"
-            style={{ color: 'var(--text-primary)', animationDelay: '0.15s', fontWeight: 600, textAlign: 'center', width: '100%' }}
-          >
-            Your AI-Powered Mental Health Companion
-          </p>
-
-          <p
-            className="text-sm sm:text-base max-w-2xl mx-auto mb-10 animate-fade-in-up leading-relaxed"
-            style={{ color: 'var(--text-secondary)', animationDelay: '0.3s', textAlign: 'center', width: '100%' }}
-          >
-            A comprehensive mental wellness platform that combines empathetic AI conversations, real-time emotion detection, mood analytics, guided breathing, journaling, and crisis support — all in one safe, private, and beautifully designed space.
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in-up" style={{ animationDelay: '0.45s', width: '100%' }}>
-            <button onClick={() => navigate('/chat')} className="btn-gradient px-8 py-4 text-base font-semibold flex items-center justify-center gap-2 rounded-2xl">
-              Start Your Journey <ArrowRight className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
-              className="px-8 py-4 text-base font-semibold rounded-2xl flex items-center justify-center gap-2 transition-all landing-outline-btn"
-            >
-              Explore Features <ChevronDown className="w-5 h-5" />
-            </button>
+/* ─── Abstract Support ────────────────────────────────────────────────── */
+function AbstractSupport() {
+  return (
+    <section id="process" style={{padding:'6rem 0',background:C.surfaceContLow}}>
+      <style>{`
+        .support-grid{display:grid;grid-template-columns:1fr 1fr;gap:5rem;align-items:center}
+        @media(max-width:768px){.support-grid{grid-template-columns:1fr!important}}
+      `}</style>
+      <div style={{maxWidth:1280,margin:'0 auto',padding:'0 2rem',boxSizing:'border-box'}}>
+        <div className="support-grid">
+          {/* Mosaic */}
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+            <div style={{display:'flex',flexDirection:'column',gap:16,paddingTop:48}}>
+              <div style={{height:192,borderRadius:'1rem',background:`${C.primaryCont}22`,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                <Icon name="bubble_chart" size={48} color={C.primaryCont}/>
+              </div>
+              <div style={{height:256,borderRadius:'1rem',overflow:'hidden'}}>
+                <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuAtOEE0FgDsVhehZnxeBiWC_DNiduKHOytuuXK48PRlBJE5iB33EWAR2vk_OEdcGqlKl_OMXcKAMeL6IvnjiICR7EWYy50EzDa7KFAE5fFHN17Ggm8ERyEt5PudBfy3D3Jjtxnh5dOwbgebEYK6_PnYSVzp6268v2b3bQURwfYkde-YMsBb14WE_Qjc9CMlNMH16g3zz_hf54mC74iX9sP3i6IbrU57eMfzFEFHQ9WYDprMM5lMh3sfYBUHWHaEXQRx0TzG0gvLnAkx" alt="Nature" style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
+              </div>
+            </div>
+            <div style={{display:'flex',flexDirection:'column',gap:16}}>
+              <div style={{height:256,borderRadius:'1rem',overflow:'hidden'}}>
+                <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuDt15qT4Hd0dcMJeCpAj9shfrn1YWQSBR5-n8plR6G025Nv5z6YwSdrKfED08KZVm1hk6oBWWDSQsrWWHnLtZKy59tzEMAPhdFJWfv--VkM7ImczUoLaVcvGdeCbWqU9fUUukkhbEfLwoycR456zemGSLtYyV_nkxZKk-mCBxFlHbg-lO9LNKjCiVGXRpVyAZT89_s7uiwGeAx8pWvGUUJgtOzcy6LJ1xBvO69CjoPQtjtEM8rW8xRuLCSSUcf5npCvyXkukXtwuEjP" alt="Gradient" style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
+              </div>
+              <div style={{height:192,borderRadius:'1rem',background:C.surfaceBright,boxShadow:'0 4px 20px rgba(0,0,0,.06)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                <Icon name="favorite" size={52} color={C.primary} filled/>
+              </div>
+            </div>
           </div>
 
-          <div className="mt-14 flex flex-wrap justify-center gap-6 sm:gap-10 animate-fade-in-up" style={{ animationDelay: '0.6s', width: '100%' }}>
-            <Stat icon={<Zap className="w-4 h-4" />} value="Real-time" label="Emotion Detection" />
-            <Stat icon={<Lock className="w-4 h-4" />} value="100%" label="Private & Secure" />
-            <Stat icon={<Globe className="w-4 h-4" />} value="24/7" label="Always Available" />
-            <Stat icon={<Users className="w-4 h-4" />} value="Free" label="Open Access" />
-          </div>
-
-          <div className="mt-12 flex flex-col items-center gap-2 animate-fade-in" style={{ animationDelay: '1s', width: '100%' }}>
-            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Scroll to explore</span>
-            <ChevronDown className="w-4 h-4 animate-bounce" style={{ color: 'var(--text-muted)' }} />
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════ FEATURES ═══════ */}
-      <section id="features" className="landing-section">
-        <div className="landing-container">
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', width: '100%', marginBottom: '3.5rem' }}>
-            <span
-              className="inline-block px-4 py-1.5 rounded-full text-xs font-semibold mb-4"
-              style={{ background: 'rgba(124,92,252,0.1)', color: 'var(--accent-primary)', border: '1px solid rgba(124,92,252,0.2)' }}
-            >
-              ✨ CORE FEATURES
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-bold font-display gradient-text mb-4" style={{ textAlign: 'center' }}>
-              Powerful Wellness Toolkit
+          {/* Text */}
+          <div style={{display:'flex',flexDirection:'column',gap:20}}>
+            <h2 style={{fontFamily:font.headline,fontWeight:700,fontSize:'clamp(1.8rem,3vw,2.5rem)',color:C.onSurface,lineHeight:1.25,margin:0}}>
+              Advanced Empathy,<br/>Zero Judgment.
             </h2>
-            <p className="text-sm sm:text-base max-w-xl mx-auto" style={{ color: 'var(--text-secondary)', textAlign: 'center' }}>
-              8 advanced features designed to support your mental health journey, backed by evidence-based psychology and powered by cutting-edge AI.
+            <p style={{fontFamily:font.body,fontSize:'1.05rem',color:C.onSurfaceVar,lineHeight:1.75,margin:0}}>
+              Our AI isn't just about logic — it's trained on thousands of therapeutic frameworks to understand the nuance of human emotion. Whether you're feeling anxious, lonely, or just need to vent, MindMate adapts to your mood in real-time.
+            </p>
+            <ul style={{listStyle:'none',padding:0,margin:0,display:'flex',flexDirection:'column',gap:14}}>
+              {['Neural Emotion Recognition','Cognitive Behavioral Adaptations'].map(item=>(
+                <li key={item} style={{display:'flex',alignItems:'center',gap:12}}>
+                  <div style={{width:28,height:28,borderRadius:'50%',background:`${C.primary}18`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                    <Icon name="check" size={16} color={C.primary}/>
+                  </div>
+                  <span style={{fontFamily:font.body,fontWeight:600,color:C.onSurface,fontSize:'.95rem'}}>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/* ─── Features Bento ──────────────────────────────────────────────────── */
+function Features() {
+  return (
+    <section style={{padding:'8rem 0',background:C.surface}}>
+      <style>{`
+        .bento{display:grid;grid-template-columns:repeat(12,1fr);gap:24px}
+        .b8{grid-column:span 8}.b4{grid-column:span 4}
+        @media(max-width:1024px){.b8{grid-column:span 12!important}.b4{grid-column:span 6!important}}
+        @media(max-width:640px){.b8,.b4{grid-column:span 12!important}.bento{grid-template-columns:1fr!important}}
+      `}</style>
+      <div style={{maxWidth:1280,margin:'0 auto',padding:'0 2rem',boxSizing:'border-box'}}>
+        <div style={{textAlign:'center',maxWidth:560,margin:'0 auto 5rem',display:'flex',flexDirection:'column',alignItems:'center',gap:14}}>
+          <h2 style={{fontFamily:font.headline,fontWeight:800,fontSize:'clamp(1.75rem,3.5vw,2.5rem)',color:C.onSurface,margin:0}}>
+            Designed for Your Peace of Mind
+          </h2>
+          <p style={{fontFamily:font.body,color:C.onSurfaceVar,fontSize:'1.05rem',margin:0}}>
+            Sophisticated technology meets human-centric design.
+          </p>
+        </div>
+
+        <div className="bento">
+          {/* 24/7 */}
+          <div className="b8" style={{background:C.surfaceBright,borderRadius:'2rem',padding:'2.5rem',boxShadow:'0 10px 40px rgba(26,28,28,.04)',minHeight:380,display:'flex',flexDirection:'column',justifyContent:'space-between'}}>
+            <div>
+              <div style={{width:64,height:64,borderRadius:'50%',background:`${C.primary}18`,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:28}}>
+                <Icon name="auto_awesome" size={30} color={C.primary}/>
+              </div>
+              <h3 style={{fontFamily:font.headline,fontWeight:700,fontSize:'1.75rem',color:C.onSurface,margin:'0 0 12px'}}>24/7 AI Support</h3>
+              <p style={{fontFamily:font.body,color:C.onSurfaceVar,fontSize:'1rem',lineHeight:1.7,maxWidth:440,margin:0}}>
+                Your companion is always awake. Whether it's 3 AM or mid-workday, get instant, mindful responses whenever you need them most.
+              </p>
+            </div>
+            <div style={{display:'flex',gap:10,flexWrap:'wrap',marginTop:28}}>
+              {['Always Available','Real-time Response'].map(t=>(
+                <span key={t} style={{padding:'.5rem 1.25rem',background:C.surfaceCont,borderRadius:9999,fontFamily:font.body,fontWeight:700,fontSize:'.85rem',color:C.onSurface}}>{t}</span>
+              ))}
+            </div>
+          </div>
+
+          {/* Wellness */}
+          <div className="b4" style={{background:`linear-gradient(145deg,${C.primaryCont},${C.primary})`,borderRadius:'2rem',padding:'2.5rem',display:'flex',flexDirection:'column',justifyContent:'space-between',color:'#fff',overflow:'hidden',position:'relative'}}>
+            <div>
+              <div style={{width:64,height:64,borderRadius:'50%',background:'rgba(255,255,255,.2)',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:28}}>
+                <Icon name="psychology" size={30} color="#fff"/>
+              </div>
+              <h3 style={{fontFamily:font.headline,fontWeight:700,fontSize:'1.4rem',margin:'0 0 12px'}}>Wellness Insights</h3>
+              <p style={{fontFamily:font.body,opacity:.9,lineHeight:1.65,margin:0,fontSize:'.95rem'}}>
+                Deep pattern recognition that helps you understand your emotional triggers and progress over time.
+              </p>
+            </div>
+            <Icon name="trending_up" size={96} style={{opacity:.12,alignSelf:'flex-end',marginTop:16}}/>
+          </div>
+
+          {/* Safe */}
+          <div className="b4" style={{background:C.surfaceContLow,borderRadius:'2rem',padding:'2.5rem',minHeight:320,display:'flex',flexDirection:'column'}}>
+            <div style={{width:64,height:64,borderRadius:'50%',background:`${C.primary}18`,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:28}}>
+              <Icon name="lock" size={30} color={C.primary}/>
+            </div>
+            <h3 style={{fontFamily:font.headline,fontWeight:700,fontSize:'1.4rem',color:C.onSurface,margin:'0 0 12px'}}>Safe &amp; Anonymous</h3>
+            <p style={{fontFamily:font.body,color:C.onSurfaceVar,lineHeight:1.65,margin:0,fontSize:'.95rem'}}>
+              Your privacy is our priority. End-to-end encrypted conversations ensure your sanctuary remains private.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {FEATURES.map((f, i) => (
-              <div key={i} className="glass-card p-5 group" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-                <div
-                  className="w-11 h-11 rounded-xl flex items-center justify-center mb-3 transition-transform group-hover:scale-110"
-                  style={{ background: `${f.color}15`, color: f.color }}
-                >
-                  {f.icon}
-                </div>
-                <h3 className="text-sm font-bold mb-1.5 font-display" style={{ color: 'var(--text-primary)', textAlign: 'center', width: '100%' }}>
-                  {f.title}
-                </h3>
-                <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)', textAlign: 'center', width: '100%' }}>
-                  {f.desc}
+          {/* Meditation */}
+          <div className="b8" style={{background:C.surfaceContH2,borderRadius:'2rem',padding:4}}>
+            <div style={{background:C.surfaceBright,borderRadius:'calc(2rem - 4px)',padding:'2.5rem',display:'flex',gap:40,alignItems:'center',flexWrap:'wrap'}}>
+              <div style={{flex:1,minWidth:200}}>
+                <h3 style={{fontFamily:font.headline,fontWeight:700,fontSize:'1.4rem',color:C.onSurface,margin:'0 0 12px'}}>Guided Meditations</h3>
+                <p style={{fontFamily:font.body,color:C.onSurfaceVar,lineHeight:1.65,margin:0,fontSize:'.95rem'}}>
+                  Personalized breathing exercises and soundscapes generated specifically for your current emotional state.
                 </p>
               </div>
-            ))}
+              <div style={{flex:1,minWidth:180,height:200,borderRadius:'1rem',overflow:'hidden'}}>
+                <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuB-xZ1uMXpVf2Bow0YmSb5mPoxaC6nKsQv6qWumJ0DcBM6GeP2MZ08Zne59U1rf1T9qkVf1VX_EZ6GGcrf0NG2_XPIwX5aM7a2du9O4GU7twhCl8nabWHwVxPThWeHaclI7GEr2SHCKQoRIVQ7K9ys6F4rD9U7WBe-e8xNf-CSj39BkwiYi6091FvoYxxp30zgBf7BAg8zo8tjvaUAnv4U5hvOc-y2dCvZVNRPy3n40XNReOJ8ck399WlaSkON55QOomU6vOqeTMMud" alt="Meditation" style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
+              </div>
+            </div>
           </div>
         </div>
-      </section>
+      </div>
+    </section>
+  )
+}
 
-      {/* ═══════ HOW IT WORKS ═══════ */}
-      <section className="landing-section">
-        <div className="landing-container" style={{ maxWidth: 800 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', width: '100%', marginBottom: '3.5rem' }}>
-            <span
-              className="inline-block px-4 py-1.5 rounded-full text-xs font-semibold mb-4"
-              style={{ background: 'rgba(92,138,252,0.1)', color: 'var(--accent-secondary)', border: '1px solid rgba(92,138,252,0.2)' }}
-            >
-              🔄 HOW IT WORKS
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-bold font-display gradient-text" style={{ textAlign: 'center' }}>
-              Three Simple Steps
-            </h2>
+/* ─── Testimonials ────────────────────────────────────────────────────── */
+const TESTS = [
+  { q:'"MindMate has become a daily ritual. It\'s like having a therapist in my pocket who knows exactly what to say when I\'m overwhelmed."', name:'Sarah Jenkins', role:'Marketing Director', img:'https://lh3.googleusercontent.com/aida-public/AB6AXuCmi_iAbfOWDDhs1c2Ztc-Dt5Xm1HKeyOkANlmE9oRpMyBm_LPKjgAbMlkFuDb6kQoI0CD6V4-xfBhDNfYMmhNjl0gVfsnpNnTg3RA4VsnvKgREc0A6E912gdMgcv-TyGV5IkNax-dLg8h7-emj9SsEztQEM9F45_oVS8F4H7GAQH-XOzxEQvoSsaQl3TFeSVKRWbK4ZvFMjhFD3asKmkpcUW1YBeYg1KmQyMV3hv632G0JUIltr4S2ue-R76ZXHTJaq-UNsRfsJw86', offset:0},
+  { q:'"The insights I get about my mood trends have been eye-opening. I\'ve finally identified the triggers I couldn\'t see before."',         name:'David Chen',    role:'Software Architect',  img:'https://lh3.googleusercontent.com/aida-public/AB6AXuD9nIz02lJz58zzzC4t1fFg3FfgD4ZY2k3gTiUfOpnFp0Dg4HRSVt5MqstPMFV4cr3V_BRxZpudMkb6Jg2poApBFYOg4TUzmCLb3lx3-FXS-AJ4lMDqPPaDutm7JQNACBnSSt-WPYrwlhZZTVofbGDVl80vLuv6s2o6mctBESjgunTchxLGIfp3cFXhrcwMdVjHXj4db7E8_8p6HP-2HSMO2oL8hz0pUau4nn3Qk1hnQGuVvVRXs1nNH-TL6agL6kvFpK4B6yyZi4xz', offset:40},
+  { q:'"I was skeptical about AI, but the level of empathy and understanding here is remarkable. It truly feels like it cares."',               name:'Elena Rodriguez',role:'Graphic Designer',    img:'https://lh3.googleusercontent.com/aida-public/AB6AXuCWMSRk_fW9FZZFn5REohUack-LaGxM5yCQqc9RhxzGRMYDcc75Jc4Jjclebs0enbGZsAXtTj2CJYuQb43JNRXlE6pSYHPscSrDJtPBwbH44-osYLKWrZyTHx2wiNVJOOvS04cCdPNl_qzMYbCSnOjwfy6o-y-9_24LqRChzkxWHtb9Uadd0u9mvSZ47O0rzxnVLdaGnnvjnksmVeSSLzgh-b3xmtBIk93_UyE0esAL80cL0PMfRvHbT0D8sJ4yM_Q0I3dTe1YFdtNm', offset:0},
+]
+
+function Testimonials() {
+  return (
+    <section id="stories" style={{padding:'8rem 0',background:C.surfaceContLow}}>
+      <style>{`
+        .test-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;align-items:start}
+        @media(max-width:768px){.test-grid{grid-template-columns:1fr!important}.test-offset{margin-top:0!important}}
+      `}</style>
+      <div style={{maxWidth:1280,margin:'0 auto',padding:'0 2rem',boxSizing:'border-box'}}>
+        <div style={{marginBottom:56}}>
+          <span style={{fontFamily:font.body,fontWeight:700,color:C.primary,fontSize:'.8rem',letterSpacing:'.14em',textTransform:'uppercase',display:'block',marginBottom:12}}>User Stories</span>
+          <h2 style={{fontFamily:font.headline,fontWeight:800,fontSize:'clamp(1.75rem,3.5vw,2.5rem)',color:C.onSurface,margin:0,maxWidth:480}}>
+            Trusted by thousands finding their inner calm.
+          </h2>
+        </div>
+        <div className="test-grid">
+          {TESTS.map((t,i)=>(
+            <div key={i} className="test-offset" style={{marginTop:t.offset}}>
+              <div style={{background:C.surfaceBright,borderRadius:'2rem',padding:'2.5rem',boxShadow:'0 10px 40px rgba(26,28,28,.06)',position:'relative',display:'flex',flexDirection:'column',gap:24}}>
+                <Icon name="format_quote" size={64} color={`${C.primary}22`} filled style={{position:'absolute',top:24,right:24}}/>
+                <p style={{fontFamily:font.body,fontSize:'1.05rem',fontStyle:'italic',color:C.onSurface,lineHeight:1.7,margin:0,position:'relative',zIndex:1}}>{t.q}</p>
+                <div style={{display:'flex',alignItems:'center',gap:14}}>
+                  <img src={t.img} alt={t.name} style={{width:48,height:48,borderRadius:'50%',objectFit:'cover',display:'block',flexShrink:0}}/>
+                  <div>
+                    <p style={{fontFamily:font.body,fontWeight:700,color:C.onSurface,margin:0,fontSize:'.95rem'}}>{t.name}</p>
+                    <p style={{fontFamily:font.body,fontSize:'.82rem',color:C.onSurfaceVar,margin:'2px 0 0'}}>{t.role}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/* ─── CTA ─────────────────────────────────────────────────────────────── */
+function CTA({ nav }) {
+  const [email,setEmail]=useState('')
+  return (
+    <section style={{padding:'8rem 0'}}>
+      <style>{`
+        .cta-form{display:flex;gap:12px;flex-direction:row}
+        @media(max-width:520px){.cta-form{flex-direction:column!important}.cta-form input,.cta-form button{width:100%;box-sizing:border-box}}
+      `}</style>
+      <div style={{maxWidth:900,margin:'0 auto',padding:'0 2rem',boxSizing:'border-box'}}>
+        <div style={{
+          background:`linear-gradient(135deg,${C.primary},${C.primaryCont})`,
+          borderRadius:'3rem',padding:'clamp(3rem,6vw,6rem)',
+          textAlign:'center',color:'#fff',position:'relative',overflow:'hidden',
+          display:'flex',flexDirection:'column',alignItems:'center',gap:20,
+        }}>
+          <div style={{position:'absolute',inset:0,zIndex:0,opacity:.18,overflow:'hidden'}}>
+            <div style={{position:'absolute',top:0,left:0,width:256,height:256,background:'#fff',borderRadius:'50%',filter:'blur(100px)'}}/>
+            <div style={{position:'absolute',bottom:0,right:0,width:384,height:384,background:C.secondaryCont,borderRadius:'50%',filter:'blur(100px)'}}/>
           </div>
-          <div className="space-y-5">
-            <Step num="01" title="Express Yourself" desc="Type or speak naturally about your emotions, thoughts, or day. Our AI powered by Google Gemini understands context, nuance, and emotional subtlety with real-time NLP analysis." />
-            <Step num="02" title="Receive Support & Insights" desc="MindMate detects your emotion (Positive/Neutral/Negative), measures severity (1-10), provides empathetic motivational responses, and suggests evidence-based coping techniques." />
-            <Step num="03" title="Track, Grow & Celebrate" desc="Watch your mood trends on interactive dashboards, earn achievement badges for consistency, practice guided breathing, and build lasting mental wellness habits." />
+          <div style={{position:'relative',zIndex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:16,width:'100%'}}>
+            <h2 style={{fontFamily:font.headline,fontWeight:800,fontSize:'clamp(2rem,5vw,3.5rem)',margin:0}}>Ready to feel better?</h2>
+            <p style={{fontFamily:font.body,fontSize:'1.1rem',opacity:.9,maxWidth:480,margin:0,lineHeight:1.7}}>
+              Join MindMate today and begin your journey toward lasting mental clarity and emotional resilience.
+            </p>
+            <div className="cta-form" style={{maxWidth:480,width:'100%',marginTop:8}}>
+              <input type="email" value={email} onChange={e=>setEmail(e.target.value)}
+                placeholder="Your email address"
+                style={{flex:1,borderRadius:9999,padding:'1rem 1.5rem',background:'rgba(255,255,255,.15)',border:'1px solid rgba(255,255,255,.25)',color:'#fff',fontFamily:font.body,fontSize:'.95rem',outline:'none',backdropFilter:'blur(10px)',minWidth:0}}
+              />
+              <button onClick={()=>nav('/chat')}
+                style={{background:'#fff',color:C.primary,border:'none',borderRadius:9999,padding:'1rem 1.75rem',fontFamily:font.body,fontWeight:700,cursor:'pointer',whiteSpace:'nowrap',flexShrink:0,transition:'all .2s'}}
+                onMouseEnter={e=>e.currentTarget.style.background=C.surfaceContLow}
+                onMouseLeave={e=>e.currentTarget.style.background='#fff'}>
+                Join Now
+              </button>
+            </div>
+            <p style={{fontFamily:font.body,fontSize:'.85rem',opacity:.7,margin:0}}>No credit card required. Free 7-day trial.</p>
           </div>
         </div>
-      </section>
+      </div>
+    </section>
+  )
+}
 
-      {/* ═══════ TECH STACK ═══════ */}
-      <section className="landing-section">
-        <div className="landing-container" style={{ maxWidth: 800 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', width: '100%', marginBottom: '2.5rem' }}>
-            <span
-              className="inline-block px-4 py-1.5 rounded-full text-xs font-semibold mb-4"
-              style={{ background: 'rgba(192,132,252,0.1)', color: 'var(--accent-tertiary)', border: '1px solid rgba(192,132,252,0.2)' }}
-            >
-              🛠️ TECHNOLOGY
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-bold font-display gradient-text" style={{ textAlign: 'center' }}>
-              Built With Modern Tech
-            </h2>
+/* ─── Footer ──────────────────────────────────────────────────────────── */
+function Footer() {
+  return (
+    <footer style={{background:'#f8fafb',borderTop:`1px solid ${C.outlineVar}33`,padding:'4rem 0'}}>
+      <style>{`
+        .footer-inner{display:flex;justify-content:space-between;gap:48px;flex-wrap:wrap}
+        @media(max-width:640px){.footer-inner{flex-direction:column;gap:32px}}
+      `}</style>
+      <div style={{maxWidth:1280,margin:'0 auto',padding:'0 2rem',boxSizing:'border-box'}}>
+        <div className="footer-inner">
+          <div style={{maxWidth:280,display:'flex',flexDirection:'column',gap:14}}>
+            <div style={{display:'flex',alignItems:'center',gap:8}}>
+              <Icon name="spa" size={24} color={C.primary}/>
+              <span style={{fontFamily:font.headline,fontWeight:800,fontSize:'1.2rem',color:C.primary}}>MindMate</span>
+            </div>
+            <p style={{fontFamily:font.body,color:C.outline,fontSize:'.875rem',lineHeight:1.65,margin:0}}>
+              The sanctuary for your mental well-being. AI-powered support, grounded in human empathy.
+            </p>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {TECH_STACK.map((t, i) => (
-              <div key={i} className="glass-card-static p-4 text-center">
-                <p className="text-sm font-bold font-display" style={{ color: 'var(--text-primary)' }}>{t.name}</p>
-                <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{t.desc}</p>
+          <div style={{display:'flex',gap:48,flexWrap:'wrap'}}>
+            {[
+              {title:'Platform', links:['Support','How it works','Pricing']},
+              {title:'Legal',    links:['Privacy Policy','Terms of Service']},
+              {title:'Connect',  links:['Twitter','LinkedIn']},
+            ].map(col=>(
+              <div key={col.title} style={{display:'flex',flexDirection:'column',gap:12}}>
+                <p style={{fontFamily:font.body,fontWeight:700,color:C.primary,fontSize:'.75rem',letterSpacing:'.12em',textTransform:'uppercase',margin:0}}>{col.title}</p>
+                {col.links.map(l=>(
+                  <a key={l} href="#" style={{fontFamily:font.body,color:C.outline,fontSize:'.875rem',textDecoration:'none',transition:'color .2s'}}
+                    onMouseEnter={e=>e.target.style.color=C.primary}
+                    onMouseLeave={e=>e.target.style.color=C.outline}>{l}</a>
+                ))}
               </div>
             ))}
           </div>
         </div>
-      </section>
-
-      {/* ═══════ CTA ═══════ */}
-      <section className="landing-section">
-        <div className="landing-container" style={{ maxWidth: 750 }}>
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              textAlign: 'center',
-              borderRadius: '1.5rem',
-              padding: 'clamp(2rem, 5vw, 3.5rem)',
-              background: 'linear-gradient(135deg, rgba(124,92,252,0.15), rgba(92,138,252,0.1))',
-              border: '1px solid rgba(124,92,252,0.25)',
-              position: 'relative',
-              overflow: 'hidden',
-              width: '100%',
-            }}
-          >
-            <Brain className="w-12 h-12 mb-5" style={{ color: 'var(--accent-primary)' }} />
-            <h2
-              className="text-2xl sm:text-3xl font-bold font-display mb-3"
-              style={{ color: 'var(--text-primary)', textAlign: 'center' }}
-            >
-              Ready to Transform Your Mental Wellness?
-            </h2>
-            <p
-              className="text-sm sm:text-base mb-8 max-w-md mx-auto"
-              style={{ color: 'var(--text-secondary)', textAlign: 'center' }}
-            >
-              Your mental health journey starts with a single conversation. MindMate is free, private, and available 24/7. Take the first step today.
-            </p>
-            <button
-              onClick={() => navigate('/chat')}
-              className="btn-gradient px-10 py-4 text-base sm:text-lg font-semibold rounded-2xl inline-flex items-center gap-2"
-            >
-              <MessageCircle className="w-5 h-5" /> Start Chatting Now
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════ FOOTER ═══════ */}
-      <footer className="text-center py-8 px-4" style={{ borderTop: '1px solid var(--border-subtle)' }}>
-        <div className="landing-container">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <span className="text-lg">🧠</span>
-            <span className="font-semibold font-display gradient-text">MindMate</span>
-          </div>
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-            © 2025 MindMate • Built with 💜 for IdeaThon • Not a substitute for professional mental health support
+        <div style={{marginTop:48,paddingTop:24,borderTop:`1px solid ${C.outlineVar}33`,textAlign:'center'}}>
+          <p style={{fontFamily:font.body,color:C.outlineVar,fontSize:'.78rem',margin:'0 0 8px 0'}}>
+            © 2024 Tech Titans — Nagpur Institute of Technology
+          </p>
+          <p style={{fontFamily:font.body,color:C.outlineVar,fontSize:'.7rem',margin:0,opacity:0.6}}>
+            Project Lead: Malik Husain | Frontend: Kartik Burde | AI: Dibyanshu Behura
           </p>
         </div>
-      </footer>
-    </div>
+      </div>
+    </footer>
   )
 }
 
-function Stat({ icon, value, label }) {
+/* ─── Bottom mobile nav ───────────────────────────────────────────────── */
+function BottomNav({ nav }) {
+  const items=[
+    {icon:'auto_awesome',label:'Features',href:'#features'},
+    {icon:'psychology',  label:'Process', href:'#process'},
+    {icon:'format_quote',label:'Stories', href:'#stories'},
+    {icon:'mail',        label:'Contact', href:'#contact'},
+  ]
+  const [active,setActive]=useState(0)
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-      <div className="flex items-center justify-center gap-1.5 mb-1">
-        <span style={{ color: 'var(--accent-primary)' }}>{icon}</span>
-        <p className="text-lg sm:text-xl font-bold font-display" style={{ color: 'var(--accent-primary)' }}>{value}</p>
-      </div>
-      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{label}</p>
-    </div>
+    <>
+      <style>{`
+        .mm-bottom-nav{display:none}
+        @media(max-width:768px){.mm-bottom-nav{display:flex!important}}
+      `}</style>
+      <nav className="mm-bottom-nav" style={{
+        position:'fixed',bottom:0,left:0,right:0,zIndex:50,
+        justifyContent:'space-around',alignItems:'center',
+        padding:'.75rem 1.5rem 1.25rem',
+        background:'rgba(255,255,255,.88)',backdropFilter:'blur(24px)',WebkitBackdropFilter:'blur(24px)',
+        borderTop:`1px solid ${C.outlineVar}33`,
+        borderRadius:'1.5rem 1.5rem 0 0',
+      }}>
+        {items.map((item,i)=>(
+          <a key={i} href={item.href} onClick={()=>setActive(i)}
+            style={{
+              display:'flex',flexDirection:'column',alignItems:'center',gap:2,textDecoration:'none',
+              padding:'.35rem .75rem',borderRadius:9999,transition:'all .15s',
+              background:active===i?`${C.primary}12`:'transparent',
+            }}>
+            <Icon name={item.icon} size={22} color={active===i?C.primary:C.onSurfaceVar}/>
+            <span style={{fontFamily:font.body,fontSize:'10px',fontWeight:600,color:active===i?C.primary:C.onSurfaceVar}}>{item.label}</span>
+          </a>
+        ))}
+      </nav>
+    </>
   )
 }
 
-function Step({ num, title, desc }) {
+/* ─── Root ────────────────────────────────────────────────────────────── */
+export default function LandingPage() {
+  const navigate = useNavigate()
   return (
-    <div className="glass-card p-5 sm:p-6 flex items-start gap-4 sm:gap-5">
-      <span
-        className="text-xl sm:text-2xl font-black font-display flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center"
-        style={{ background: 'rgba(124,92,252,0.1)', color: 'var(--accent-primary)' }}
-      >
-        {num}
-      </span>
-      <div className="min-w-0">
-        <h3 className="text-base sm:text-lg font-semibold mb-1 font-display" style={{ color: 'var(--text-primary)' }}>{title}</h3>
-        <p className="text-xs sm:text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{desc}</p>
-      </div>
+    <div style={{minHeight:'100vh',background:C.surface,color:C.onSurface,overflowX:'hidden',fontFamily:font.body}}>
+      <style>{`*{box-sizing:border-box}img{max-width:100%}a{-webkit-tap-highlight-color:transparent}`}</style>
+      <Nav nav={navigate}/>
+      <main style={{paddingTop:72,paddingBottom:80}}>
+        <Hero nav={navigate}/>
+        <AbstractSupport/>
+        <Features/>
+        <Testimonials/>
+        <CTA nav={navigate}/>
+      </main>
+      <Footer/>
+      <BottomNav nav={navigate}/>
     </div>
   )
 }

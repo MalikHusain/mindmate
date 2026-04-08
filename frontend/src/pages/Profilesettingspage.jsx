@@ -77,40 +77,40 @@ export default function ProfileSettingsPage() {
   })()
 
   return (
-    <div className="space-y-6 page-enter" style={{ width: '100%', overflowX: 'hidden' }}>
+    <div className="space-y-8 page-enter" style={{ width: '100%', overflowX: 'hidden', paddingBottom: '2rem' }}>
 
       {/* Header */}
-      <div style={{ textAlign: 'center', width: '100%' }}>
-        <h1 className="font-display gradient-text text-2xl sm:text-3xl mb-1">Profile & Settings</h1>
-        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Personalize your MindMate experience</p>
+      <div style={{ textAlign: 'center', width: '100%', marginBottom: '1rem' }}>
+        <h1 className="font-display gradient-text text-3xl sm:text-4xl mb-2">Profile & Settings</h1>
+        <p className="text-base" style={{ color: 'var(--text-muted)' }}>Personalize your MindMate experience</p>
       </div>
 
       {/* Profile card */}
-      <div className="glass-card-static p-5 sm:p-6 space-y-5">
-        <div className="flex items-center gap-2 mb-1">
-          <User className="w-4 h-4" style={{ color: 'var(--accent-primary)' }} />
-          <h2 className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>Your Profile</h2>
+      <div className="glass-card-static p-6 sm:p-8 space-y-6">
+        <div className="flex items-center gap-3 mb-2">
+          <User className="w-5 h-5" style={{ color: 'var(--accent-primary)' }} />
+          <h2 className="text-base font-semibold" style={{ color: 'var(--text-secondary)' }}>Your Profile</h2>
         </div>
 
         {/* Avatar row */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 pt-2">
           <div
-            className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto sm:mx-0"
-            style={{ background: 'rgba(124,92,252,0.12)', fontSize: '2rem' }}
+            className="w-24 h-24 sm:w-20 sm:h-20 flex-shrink-0 rounded-2xl flex items-center justify-center shadow-xl transition-all"
+            style={{ background: 'var(--accent-glow)', fontSize: '3rem', border: '1px solid var(--border-accent)' }}
           >
             {avatar}
           </div>
-          <div>
-            <p className="text-xs font-medium mb-2" style={{ color: 'var(--text-muted)' }}>Choose your avatar</p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <div className="flex-1 w-full text-center sm:text-left">
+            <p className="text-sm font-medium mb-3" style={{ color: 'var(--text-muted)' }}>Choose your avatar</p>
+            <div className="flex flex-wrap justify-center sm:justify-start gap-2.5 max-w-full">
               {AVATARS.map((a) => (
                 <button
                   key={a}
                   onClick={() => setAvatar(a)}
-                  className="w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all hover:scale-110"
+                  className="w-12 h-12 flex-shrink-0 rounded-2xl flex items-center justify-center text-2xl transition-all hover:scale-105 active:scale-95"
                   style={{
-                    background: avatar === a ? 'rgba(124,92,252,0.2)' : 'var(--surface-glass)',
-                    border: `1px solid ${avatar === a ? 'var(--border-accent)' : 'var(--border-subtle)'}`,
+                    background: avatar === a ? 'var(--accent-glow)' : 'var(--surface-glass)',
+                    border: `1px solid ${avatar === a ? 'var(--accent-primary)' : 'var(--border-subtle)'}`,
                   }}
                 >
                   {a}
@@ -121,8 +121,8 @@ export default function ProfileSettingsPage() {
         </div>
 
         {/* Name input */}
-        <div>
-          <label className="text-xs font-medium block mb-1.5" style={{ color: 'var(--text-muted)' }}>Display Name</label>
+        <div className="pt-2">
+          <label className="text-sm font-medium block mb-2" style={{ color: 'var(--text-muted)' }}>Display Name</label>
           <input
             type="text"
             value={name}
@@ -161,10 +161,10 @@ export default function ProfileSettingsPage() {
       </div>
 
       {/* Appearance */}
-      <div className="glass-card-static p-5 sm:p-6 space-y-4">
-        <div className="flex items-center gap-2 mb-1">
-          <Palette className="w-4 h-4" style={{ color: 'var(--accent-primary)' }} />
-          <h2 className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>Appearance</h2>
+      <div className="glass-card-static p-6 sm:p-8 space-y-5">
+        <div className="flex items-center gap-3 mb-2">
+          <Palette className="w-5 h-5" style={{ color: 'var(--accent-primary)' }} />
+          <h2 className="text-base font-semibold" style={{ color: 'var(--text-secondary)' }}>Appearance</h2>
         </div>
 
         {/* Theme toggle */}
@@ -215,10 +215,10 @@ export default function ProfileSettingsPage() {
       </div>
 
       {/* Notifications */}
-      <div className="glass-card-static p-5 sm:p-6 space-y-4">
-        <div className="flex items-center gap-2 mb-1">
-          <Bell className="w-4 h-4" style={{ color: 'var(--accent-primary)' }} />
-          <h2 className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>Notifications</h2>
+      <div className="glass-card-static p-6 sm:p-8 space-y-5">
+        <div className="flex items-center gap-3 mb-2">
+          <Bell className="w-5 h-5" style={{ color: 'var(--accent-primary)' }} />
+          <h2 className="text-base font-semibold" style={{ color: 'var(--text-secondary)' }}>Notifications</h2>
         </div>
 
         <div className="space-y-3">
@@ -256,10 +256,10 @@ export default function ProfileSettingsPage() {
       </div>
 
       {/* Privacy & Data */}
-      <div className="glass-card-static p-5 sm:p-6 space-y-4">
-        <div className="flex items-center gap-2 mb-1">
-          <Shield className="w-4 h-4" style={{ color: 'var(--accent-primary)' }} />
-          <h2 className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>Privacy & Data</h2>
+      <div className="glass-card-static p-6 sm:p-8 space-y-5">
+        <div className="flex items-center gap-3 mb-2">
+          <Shield className="w-5 h-5" style={{ color: 'var(--accent-primary)' }} />
+          <h2 className="text-base font-semibold" style={{ color: 'var(--text-secondary)' }}>Privacy & Data</h2>
         </div>
 
         <div

@@ -1,4 +1,5 @@
 import os
+import certifi
 from datetime import datetime, timedelta
 from bson import ObjectId
 
@@ -12,33 +13,32 @@ _db = None
 
 
 def get_db():
-    """Get MongoDB database connection (singleton pattern)"""
     global _client, _db
     if _db is None:
         try:
             from pymongo import MongoClient
-            
-            # For MongoDB Atlas, add SSL/TLS settings
-            if "mongodb+srv" in MONGO_URI:
+
+            if "mongodb+srv" in MONGO_URI or "mongodb.net" in MONGO_URI:
                 _client = MongoClient(
                     MONGO_URI,
                     tls=True,
-                    tlsAllowInvalidCertificates=True,  # Only for development
-                    serverSelectionTimeoutMS=5000  # 5 second timeout
+                    tlsCAFile=certifi.where(),    # ← THE FIX
+                    serverSelectionTimeoutMS=20000,
+                    connectTimeoutMS=20000,
+                    socketTimeoutMS=20000,
+                    retryWrites=True,
                 )
             else:
                 _client = MongoClient(MONGO_URI)
-            
-            # Test connection
-            _client.admin.command('ping')
+
+            _client.admin.command("ping")
             print(f"✅ Connected to MongoDB Atlas: {DB_NAME}")
-            
             _db = _client[DB_NAME]
+
         except Exception as e:
             print(f"❌ MongoDB Connection Error: {e}")
             print("   Please check your MONGO_URI in .env file")
             raise
-    
     return _db
 
 

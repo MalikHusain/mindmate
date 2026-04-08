@@ -15,12 +15,13 @@ import { BrowserRouter, Routes, Route, NavLink, useLocation, Navigate } from 're
 import { useState } from 'react'
 import {
   MessageCircle, BarChart3, Wind, BookOpen,
-  Shield, User, Menu, X, Brain
+  Shield, User, Menu, X, Brain, LogOut, Sun, Moon
 } from 'lucide-react'
-import { ThemeProvider } from './ThemeContext'
+import { ThemeProvider, useTheme } from './ThemeContext'
 
 // Existing pages
 import LandingPage from './pages/LandingPage'
+import LoginPage from './pages/LoginPage'
 import ChatPage from './pages/ChatPage'
 import DashboardPage from './pages/DashboardPage'
 import BreathingPage from './pages/BreathingPage'
@@ -45,6 +46,7 @@ const NAV_ITEMS = [
 function AppShell({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { showCheckIn, dismiss } = useDailyCheckIn()
+  const { theme, toggleTheme } = useTheme()
   const location = useLocation()
 
   // Active route label for mobile topbar
@@ -69,7 +71,7 @@ function AppShell({ children }) {
       {/* ── Sidebar ── */}
       <aside
         style={{
-          width: 220,
+          width: 'var(--sidebar-width, 240px)',
           flexShrink: 0,
           display: 'flex',
           flexDirection: 'column',
@@ -89,11 +91,19 @@ function AppShell({ children }) {
       >
         {/* Logo */}
         <div
-          className="flex items-center gap-2.5 px-5 py-5"
+          className="flex items-center gap-3 px-5 py-6"
           style={{ borderBottom: '1px solid var(--border-subtle)' }}
         >
-          <span className="text-2xl">🧠</span>
-          <span className="font-display gradient-text text-lg font-bold">MindMate</span>
+          <span className="material-symbols-outlined" style={{ fontSize: '28px', color: '#006162' }}>spa</span>
+          <span style={{
+              fontFamily: '"Plus Jakarta Sans", sans-serif',
+              fontWeight: 800,
+              fontSize: '1.35rem',
+              background: 'linear-gradient(135deg, #006162, #006398)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+          }}>MindMate</span>
           <button
             onClick={() => setSidebarOpen(false)}
             className="ml-auto lg:hidden w-7 h-7 flex items-center justify-center rounded-lg transition-all hover:bg-white/5"
@@ -104,7 +114,7 @@ function AppShell({ children }) {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 px-3 py-4 space-y-1">
+        <nav className="flex-1 px-4 mt-12 pt-4 space-y-3">
           {NAV_ITEMS.map(item => (
             <NavLink
               key={item.path}
@@ -120,9 +130,9 @@ function AppShell({ children }) {
                 fontSize: '0.875rem',
                 fontWeight: 500,
                 transition: 'all 0.15s',
-                background: isActive ? 'rgba(124,92,252,0.15)' : 'transparent',
+                background: isActive ? 'rgba(0,97,98,0.15)' : 'transparent',
                 color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
-                border: isActive ? '1px solid rgba(124,92,252,0.25)' : '1px solid transparent',
+                border: isActive ? '1px solid rgba(0,97,98,0.25)' : '1px solid transparent',
               })}
             >
               <span style={{ flexShrink: 0 }}>{item.icon}</span>
@@ -141,11 +151,35 @@ function AppShell({ children }) {
           ))}
         </nav>
 
-        {/* Footer */}
-        <div className="px-5 py-4" style={{ borderTop: '1px solid var(--border-subtle)' }}>
-          <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-            © 2025 MindMate · Not a medical service
-          </p>
+        {/* Footer actions */}
+        <div className="px-5 pb-8 pt-6 flex flex-col gap-6" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+          <button
+            onClick={toggleTheme}
+            className="flex items-center justify-center gap-3 w-full p-3.5 rounded-xl text-sm font-bold transition-all border shadow-sm"
+            style={{ 
+              color: 'var(--accent-primary)',
+              borderColor: 'var(--border-accent)',
+              background: 'var(--surface-glass)'
+            }}
+          >
+            {theme === 'dark' ? <Sun className="w-5 h-5 flex-shrink-0" /> : <Moon className="w-5 h-5 flex-shrink-0" />}
+            {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+          </button>
+          
+          <NavLink
+            to="/"
+            className="flex items-center justify-center gap-3 w-full p-3.5 rounded-xl text-sm font-bold transition-all hover:bg-red-500/10"
+            style={{ color: 'var(--negative)' }}
+          >
+            <LogOut className="w-5 h-5 flex-shrink-0" />
+            Logout
+          </NavLink>
+
+          <div className="pt-4 mt-2" style={{ borderTop: '1px solid rgba(128,128,128,0.15)' }}>
+            <p className="text-xs text-center font-medium opacity-60 flex items-center justify-center gap-1" style={{ color: 'var(--text-muted)' }}>
+              © 2026 MindMate
+            </p>
+          </div>
         </div>
       </aside>
 
@@ -214,7 +248,9 @@ function AppShell({ children }) {
           .lg-sidebar {
             transform: translateX(0) !important;
             position: sticky !important;
+            top: 0;
             height: 100vh;
+            border-right: 1px solid var(--border-subtle);
           }
           .main-with-sidebar {
             margin-left: 0;
@@ -231,8 +267,9 @@ export default function App() {
     <ThemeProvider>
       <BrowserRouter>
         <Routes>
-          {/* Public landing */}
-          <Route path="/" element={<LandingPage />} />
+          {/* Public landing & Auth */}
+          <Route path="/"      element={<LandingPage />} />
+          <Route path="/login" element={<LoginPage />} />
 
           {/* App shell routes */}
           <Route

@@ -36,23 +36,25 @@ else:
 
 # ---------- Enhanced Prompt for Motivational Responses ----------
 SYSTEM_PROMPT = """You are MindMate, a compassionate AI mental health companion.
+Analyze the user's history if provided, select a response strategy (Empathy, Guidance, Motivation), and generate an empathetic and context-aware response.
+If the user is feeling negative emotions, motivate them and keep them in a better, positive feeling.
 
 Respond with ONLY valid JSON:
 {
   "emotion": "Positive" or "Neutral" or "Negative",
   "severity": 1-10,
-  "empathetic_response": "short, warm response (1-2 sentences)",
-  "recommendation": "short actionable tip (max 8 words)"
+  "empathetic_response": "warm, motivational, and empathetic response (2-3 sentences)",
+  "recommendation": "short actionable coping tip (max 10 words)"
 }
 
-Keep responses concise. Use minimal emojis. Be direct and caring."""
+Keep responses compassionate and uplifting. Be direct and caring."""
 
 
 # ============================================================
 #  DEMO MODE RESPONSES (Concise, Minimal Emojis)
 # ============================================================
 
-def get_fallback_response(message):
+def get_fallback_response(message, history_text=""):
     """Concise motivational response system with minimal emojis."""
     msg_lower = message.lower()
 
@@ -151,15 +153,19 @@ def get_fallback_response(message):
     return {"emotion": "Neutral", "severity": 3, **choice}
 
 
-def call_gemini(user_message):
+def call_gemini(user_message, history_text=""):
     """Call the Gemini API and parse the response."""
     if gemini_model is None:
-        return get_fallback_response(user_message)
+        return get_fallback_response(user_message, history_text)
 
     try:
-        response = gemini_model.generate_content(
-            f"{SYSTEM_PROMPT}\n\nUser message: {user_message}"
-        )
+        prompt_with_history = f"{SYSTEM_PROMPT}\n\n"
+        if history_text:
+            prompt_with_history += f"Recent User History:\n{history_text}\n\n"
+            prompt_with_history += "Consider the user's recent history to select an appropriate response strategy (Empathy, Guidance, Motivation).\n\n"
+        prompt_with_history += f"Current User message: {user_message}"
+
+        response = gemini_model.generate_content(prompt_with_history)
         text = response.text.strip()
 
         if text.startswith("```"):
@@ -172,7 +178,7 @@ def call_gemini(user_message):
 
     except Exception as e:
         print(f"Gemini error: {e}")
-        return get_fallback_response(user_message)
+        return get_fallback_response(user_message, history_text)
 
 
 # ============================================================
@@ -187,7 +193,15 @@ def chat():
     if not user_message:
         return jsonify({"error": "Message is required"}), 400
 
-    result = call_gemini(user_message)
+    recent_moods = get_last_n_moods(5)
+    history_text = "\n".join([f"- User: {m.get('user_message', '')} (Emotion: {m.get('emotion', '')}, Severity: {m.get('severity', '')})" for m in recent_moods if 'user_message' in m])
+    
+    # Reverse history_text so chronological order makes sense (from oldest of the recent to newest)
+    history_lines = history_text.split('\n')
+    history_lines.reverse()
+    history_text = "\n".join(history_lines)
+
+    result = call_gemini(user_message, history_text)
 
     entry_id = save_conversation(
         user_message=user_message,
@@ -402,4 +416,4 @@ if __name__ == "__main__":
     print("\n🧠 MindMate Backend running on http://localhost:5000")
     print(f"   AI Mode: {'Gemini API' if gemini_model else 'Demo'}")
     print(f"   Database: MongoDB Atlas\n")
-    app.run(debug=True, port=5000)
+    app.run(debug=True, port=5000, use_reloader=False)

@@ -47,45 +47,47 @@ export default function DailyCheckInModal({ onClose, onSubmit }) {
       {/* Backdrop */}
       <div
         onClick={onClose}
+        className="animate-fade-in"
         style={{
           position: 'fixed',
           inset: 0,
-          background: 'rgba(0,0,0,0.6)',
-          backdropFilter: 'blur(4px)',
+          background: 'rgba(5, 5, 15, 0.75)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
           zIndex: 999,
         }}
       />
 
       {/* Modal */}
       <div
-        className="animate-scale-in"
+        className="animate-fade-in-up"
         style={{
           position: 'fixed',
           top: '50%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
           zIndex: 1000,
-          width: 'min(92vw, 440px)',
+          width: 'min(92vw, 460px)',
           maxHeight: '90vh',
           overflowY: 'auto',
-          borderRadius: '1.5rem',
-          background: 'var(--bg-card)',
-          border: '1px solid var(--border-subtle)',
-          boxShadow: '0 25px 60px rgba(0,0,0,0.5)',
-          padding: '1.5rem',
+          borderRadius: '2rem',
+          background: 'linear-gradient(160deg, rgba(30, 30, 60, 0.95), rgba(15, 15, 35, 0.98))',
+          border: '1px solid rgba(124, 92, 252, 0.3)',
+          boxShadow: '0 30px 80px rgba(0,0,0,0.7), 0 0 50px rgba(124, 92, 252, 0.15)',
+          padding: '2rem',
           boxSizing: 'border-box',
         }}
       >
         {/* Header */}
-        <div className="flex items-start justify-between mb-5">
+        <div className="flex items-start justify-between mb-6">
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <Sparkles className="w-4 h-4" style={{ color: 'var(--accent-primary)' }} />
-              <span className="text-xs font-semibold" style={{ color: 'var(--accent-primary)' }}>
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles className="w-5 h-5" style={{ color: 'var(--accent-tertiary)' }} />
+              <span className="text-sm font-bold tracking-wider" style={{ color: 'var(--accent-tertiary)' }}>
                 DAILY CHECK-IN
               </span>
             </div>
-            <h2 className="text-lg font-bold font-display" style={{ color: 'var(--text-primary)' }}>
+            <h2 className="text-xl font-bold font-display" style={{ color: 'var(--text-primary)' }}>
               {step === 1 ? 'How are you feeling today?' : 'Anything else on your mind?'}
             </h2>
           </div>
@@ -111,8 +113,8 @@ export default function DailyCheckInModal({ onClose, onSubmit }) {
 
         {step === 1 ? (
           /* Mood selection */
-          <div className="space-y-4">
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem' }}>
+          <div className="space-y-6">
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem' }}>
               {MOODS.map((m) => (
                 <button
                   key={m.label}
@@ -138,10 +140,10 @@ export default function DailyCheckInModal({ onClose, onSubmit }) {
             <button
               onClick={() => mood && setStep(2)}
               disabled={!mood}
-              className="btn-gradient w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all"
+              className="btn-gradient w-full py-3.5 rounded-2xl text-base font-semibold flex items-center justify-center gap-2 transition-all mt-4"
               style={{ opacity: mood ? 1 : 0.4, cursor: mood ? 'pointer' : 'not-allowed' }}
             >
-              Next <ArrowRight className="w-4 h-4" />
+              Continue <ArrowRight className="w-5 h-5" />
             </button>
 
             <button
@@ -154,7 +156,7 @@ export default function DailyCheckInModal({ onClose, onSubmit }) {
           </div>
         ) : (
           /* Note + quick tags */
-          <div className="space-y-4">
+          <div className="space-y-6">
             {/* Selected mood recap */}
             {selectedMood && (
               <div
@@ -214,17 +216,17 @@ export default function DailyCheckInModal({ onClose, onSubmit }) {
               onBlur={e => e.target.style.borderColor = 'var(--border-subtle)'}
             />
 
-            <div className="flex gap-3">
+            <div className="flex gap-4 pt-2">
               <button
                 onClick={() => setStep(1)}
-                className="flex-1 py-2.5 rounded-xl text-sm font-medium transition-all"
-                style={{ background: 'var(--surface-glass)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}
+                className="flex-1 py-3 rounded-2xl text-sm font-medium transition-all hover:bg-white/5"
+                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}
               >
                 Back
               </button>
               <button
                 onClick={handleSubmit}
-                className="btn-gradient flex-1 py-2.5 rounded-xl text-sm font-semibold"
+                className="btn-gradient flex-[2] py-3 rounded-2xl text-base font-semibold shadow-lg"
               >
                 Log Check-in ✓
               </button>

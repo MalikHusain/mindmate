@@ -62,7 +62,7 @@ export default function CrisisSupportPage() {
   }
 
   return (
-    <div className="space-y-6 page-enter" style={{ width: '100%', overflowX: 'hidden' }}>
+    <div className="space-y-8 page-enter" style={{ width: '100%', overflowX: 'hidden', paddingBottom: '2rem' }}>
 
       {/* Header */}
       <div style={{ textAlign: 'center', width: '100%' }}>
@@ -80,7 +80,7 @@ export default function CrisisSupportPage() {
 
       {/* Emergency banner */}
       <div
-        className="rounded-xl p-4 flex items-start gap-3"
+        className="rounded-2xl p-5 flex items-start gap-4 mb-4 shadow-lg shadow-red-500/10"
         style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', width: '100%', boxSizing: 'border-box' }}
       >
         <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: 'var(--negative)' }} />
@@ -93,9 +93,9 @@ export default function CrisisSupportPage() {
       </div>
 
       {/* Helplines */}
-      <div className="space-y-3">
-        <h2 className="text-sm font-semibold px-1" style={{ color: 'var(--text-secondary)' }}>
-          <Phone className="w-4 h-4 inline mr-1.5" />
+      <div className="space-y-4">
+        <h2 className="text-base font-semibold px-1 mb-2" style={{ color: 'var(--text-secondary)' }}>
+          <Phone className="w-5 h-5 inline mr-2" />
           Mental Health Helplines
         </h2>
         {HELPLINES.map((group) => {
@@ -105,28 +105,28 @@ export default function CrisisSupportPage() {
             <div key={key} className="glass-card-static rounded-xl overflow-hidden">
               <button
                 onClick={() => setExpanded(isOpen ? null : key)}
-                className="w-full flex items-center justify-between p-4 transition-all hover:bg-white/5"
+                className="w-full flex items-center justify-between p-5 transition-all hover:bg-white/5"
                 style={{ textAlign: 'left' }}
               >
-                <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{group.country}</span>
+                <span className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{group.country}</span>
                 {isOpen
                   ? <ChevronUp className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
                   : <ChevronDown className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
                 }
               </button>
               {isOpen && (
-                <div className="px-4 pb-4 space-y-3">
+                <div className="px-5 pb-5 space-y-4">
                   {group.lines.map((line, i) => (
                     <div
                       key={i}
                       className="rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                       style={{ background: 'var(--surface-glass)', border: '1px solid var(--border-subtle)', width: '100%', boxSizing: 'border-box' }}
                     >
-                      <div style={{ minWidth: 0 }}>
-                        <p className="text-sm font-bold font-display mb-0.5" style={{ color: 'var(--text-primary)' }}>{line.name}</p>
-                        <p className="text-xs mb-1" style={{ color: 'var(--text-secondary)', wordBreak: 'break-word' }}>{line.desc}</p>
+                      <div style={{ minWidth: 0, paddingRight: '1rem' }}>
+                        <p className="text-base font-bold font-display mb-1" style={{ color: 'var(--text-primary)' }}>{line.name}</p>
+                        <p className="text-sm mb-2" style={{ color: 'var(--text-secondary)', wordBreak: 'break-word', lineHeight: '1.4' }}>{line.desc}</p>
                         <span
-                          className="inline-block text-[10px] px-2 py-0.5 rounded-full"
+                          className="inline-block text-xs px-2.5 py-1 rounded-full font-medium"
                           style={{ background: 'rgba(34,197,94,0.1)', color: 'var(--positive)' }}
                         >
                           {line.available}
@@ -157,10 +157,10 @@ export default function CrisisSupportPage() {
       </div>
 
       {/* Self-check */}
-      <div className="glass-card-static p-5 sm:p-6 space-y-4">
+      <div className="glass-card-static p-6 sm:p-8 space-y-6">
         <div>
-          <h2 className="text-sm font-semibold mb-1" style={{ color: 'var(--text-secondary)' }}>
-            <Heart className="w-4 h-4 inline mr-1.5" style={{ color: 'var(--negative)' }} />
+          <h2 className="text-base font-semibold mb-2" style={{ color: 'var(--text-secondary)' }}>
+            <Heart className="w-5 h-5 inline mr-2" style={{ color: 'var(--negative)' }} />
             Quick Self-Check
           </h2>
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
@@ -168,7 +168,7 @@ export default function CrisisSupportPage() {
           </p>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-4">
           {QUESTIONS.map((q, i) => (
             <div
               key={i}
@@ -180,8 +180,8 @@ export default function CrisisSupportPage() {
                 boxSizing: 'border-box',
               }}
             >
-              <p className="text-sm mb-3" style={{ color: 'var(--text-primary)', wordBreak: 'break-word', lineHeight: 1.5 }}>{q}</p>
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <p className="text-base mb-4" style={{ color: 'var(--text-primary)', wordBreak: 'break-word', lineHeight: 1.6 }}>{q}</p>
+              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                 {[['Yes', true, 'var(--negative)', 'rgba(239,68,68,0.12)'], ['No', false, 'var(--positive)', 'rgba(34,197,94,0.1)']].map(([label, val, color, bg]) => (
                   <button
                     key={label}
@@ -226,22 +226,22 @@ export default function CrisisSupportPage() {
       </div>
 
       {/* Coping strategies */}
-      <div className="space-y-3">
-        <h2 className="text-sm font-semibold px-1" style={{ color: 'var(--text-secondary)' }}>
-          <MessageCircle className="w-4 h-4 inline mr-1.5" />
+      <div className="space-y-4">
+        <h2 className="text-base font-semibold px-1 mb-2" style={{ color: 'var(--text-secondary)' }}>
+          <MessageCircle className="w-5 h-5 inline mr-2" />
           Immediate Coping Strategies
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {COPING_TIPS.map((tip, i) => (
             <div
               key={i}
               className="glass-card-static p-4 flex items-start gap-3"
               style={{ width: '100%', boxSizing: 'border-box' }}
             >
-              <span className="text-2xl flex-shrink-0">{tip.emoji}</span>
+              <span className="text-3xl flex-shrink-0 mt-1">{tip.emoji}</span>
               <div style={{ minWidth: 0 }}>
-                <p className="text-sm font-bold mb-1 font-display" style={{ color: 'var(--text-primary)' }}>{tip.title}</p>
-                <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)', wordBreak: 'break-word' }}>{tip.desc}</p>
+                <p className="text-base font-bold mb-2 font-display" style={{ color: 'var(--text-primary)' }}>{tip.title}</p>
+                <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)', wordBreak: 'break-word' }}>{tip.desc}</p>
               </div>
             </div>
           ))}
