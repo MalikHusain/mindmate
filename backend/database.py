@@ -2,12 +2,11 @@ import os
 import certifi
 from datetime import datetime, timedelta
 from bson import ObjectId
+from dotenv import load_dotenv
+load_dotenv()
 
 # ---------- MongoDB Atlas Connection ----------
-# Get connection string from environment variable
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
-DB_NAME = os.getenv("MONGO_DB_NAME", "mindmate")
-
+# Get connection strings inside get_db to ensure env vars are loaded
 _client = None
 _db = None
 
@@ -15,6 +14,8 @@ _db = None
 def get_db():
     global _client, _db
     if _db is None:
+        MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
+        DB_NAME = os.getenv("MONGO_DB_NAME", "mindmate")
         try:
             from pymongo import MongoClient
 
@@ -31,9 +32,10 @@ def get_db():
             else:
                 _client = MongoClient(MONGO_URI)
 
-            _client.admin.command("ping")
-            print(f"✅ Connected to MongoDB Atlas: {DB_NAME}")
-            _db = _client[DB_NAME]
+            db_name = os.getenv("MONGO_DB_NAME", "mindmate")
+            print(f"📡 [DATABASE] Initializing connection to: {MONGO_URI[:25]}...")
+            print(f"✅ [DATABASE] Connected to MongoDB Atlas: {db_name}")
+            _db = _client[db_name]
 
         except Exception as e:
             print(f"❌ MongoDB Connection Error: {e}")
@@ -69,6 +71,33 @@ def _id_str(doc):
         del doc["_id"]
     return doc
 
+def save_user_login(user_info):
+    """Save user login event including provider and timestamp."""
+    db = get_db()
+    user_id = user_info.get("email", "unknown")
+    doc = {
+        "user_id": user_id,
+        "name": user_info.get("name"),
+        "email": user_id,
+        "picture": user_info.get("picture"),
+        "provider": user_info.get("provider", "email"),
+        "last_login": datetime.utcnow().isoformat()
+    }
+    # Update user or insert if doesn't exist
+    db.users.update_one(
+        {"email": user_id},
+        {"$set": doc},
+        upsert=True
+    )
+    
+    # Also log the login event
+    db.login_logs.insert_one({
+        "user_id": user_id,
+        "timestamp": datetime.utcnow().isoformat(),
+        "provider": user_info.get("provider")
+    })
+    return user_id
+
 
 # ============================================================
 #  CONVERSATIONS
@@ -86,6 +115,9 @@ def save_conversation(user_message, ai_response, emotion, severity, recommendati
         "timestamp": datetime.utcnow().isoformat(),
     }
     result = db.conversations.insert_one(doc)
+    doc_count = db.conversations.count_documents({})
+    print(f"💾 [DATABASE] Conversation saved! ID: {result.inserted_id} | User: {user_id}")
+    print(f"📊 [DATABASE] Total documents in 'conversations': {doc_count}")
     _check_achievements(db, user_id)
     return str(result.inserted_id)
 

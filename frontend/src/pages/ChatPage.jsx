@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
-import { Send, Lightbulb, Trash2, Sparkles, Mic, MicOff, Volume2 } from 'lucide-react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { Send, Lightbulb, Trash2, Sparkles, Mic, MicOff, Volume2, Loader2 } from 'lucide-react'
+
 import { sendMessage } from '../api'
 import { EmotionBadge, SeverityMeter } from '../components/EmotionBadge'
 import CrisisAlert from '../components/CrisisAlert'
@@ -31,9 +33,60 @@ export default function ChatPage() {
   const inputRef = useRef(null)
   const recognitionRef = useRef(null)
 
+  const location = useLocation()
+  const navigate = useNavigate()
+  const [authLoading, setAuthLoading] = useState(false)
+  const [authError, setAuthError] = useState(null)
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
+
+  // Handle GitHub Redirect Callback
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    const code = params.get('code')
+    
+    if (code) {
+      handleGithubCallback(code)
+    }
+  }, [location])
+
+  const handleGithubCallback = async (code) => {
+    setAuthLoading(true)
+    setAuthError(null)
+    try {
+      const response = await fetch('/api/auth/github', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code })
+      })
+      
+      if (!response.ok) throw new Error('GitHub authentication failed')
+      
+      const data = await response.json()
+      
+      // Store token and user info
+      localStorage.setItem('token', data.token)
+      localStorage.setItem('user', JSON.stringify(data.user))
+
+      // Track login in backend
+      try {
+        await trackLogin(data.user);
+      } catch (err) {
+        console.error("Failed to track GitHub login:", err);
+      }
+      
+      // Clean up the URL
+      navigate('/chat', { replace: true })
+    } catch (err) {
+      console.error('GitHub Auth Error:', err)
+      setAuthError('Failed to sign in with GitHub. Please try again.')
+    } finally {
+      setAuthLoading(false)
+    }
+  }
+
 
   // Voice Recognition Setup
   useEffect(() => {
@@ -86,7 +139,11 @@ export default function ChatPage() {
     setShowPrompts(false)
 
     try {
-      const data = await sendMessage(msg)
+      const userStr = localStorage.getItem('user');
+      const user = userStr ? JSON.parse(userStr) : null;
+      const userId = user?.email || "default_user";
+
+      const data = await sendMessage(msg, userId)
       setMessages(prev => [
         ...prev,
         {
@@ -131,7 +188,28 @@ export default function ChatPage() {
 
   return (
     <div className="chat-container page-enter">
+      {/* Auth Loading / Error Overlays */}
+      {authLoading && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="glass-card-static p-8 flex flex-col items-center">
+            <Loader2 className="w-10 h-10 text-teal-400 animate-spin mb-4" />
+            <p className="font-bold text-white">Authenticating with GitHub...</p>
+          </div>
+        </div>
+      )}
+
+      {authError && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 animate-bounce">
+          <div className="bg-red-500 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3">
+            <span>⚠️</span>
+            <span className="font-bold text-sm">{authError}</span>
+            <button onClick={() => setAuthError(null)} className="ml-2 hover:opacity-75">✕</button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
+
       <div className="page-header flex items-center justify-between flex-shrink-0">
         <div>
           <h1 className="font-display gradient-text">Chat with MindMate</h1>

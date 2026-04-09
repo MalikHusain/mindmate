@@ -1,9 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGoogleLogin } from '@react-oauth/google';
-import { jwtDecode } from 'jwt-decode';
 import { trackLogin } from '../api';
-
 
 
 const styles = `
@@ -47,6 +45,7 @@ const styles = `
     padding: 2.5rem 2.25rem 2rem;
     width: 100%;
     box-shadow: 0 24px 60px rgba(8, 80, 65, 0.25);
+    animation: fadeInUp 0.5s ease both;
   }
 
   .mm-header {
@@ -67,6 +66,7 @@ const styles = `
     margin-bottom: 1.125rem;
     box-shadow: 0 10px 28px rgba(26, 158, 117, 0.38);
     transition: transform 0.2s ease;
+    cursor: pointer;
   }
 
   .mm-logo:hover { transform: scale(1.04); }
@@ -103,20 +103,6 @@ const styles = `
     text-transform: uppercase;
     letter-spacing: 0.6px;
   }
-
-  .mm-forgot {
-    font-size: 12px;
-    color: #1a9e75;
-    font-weight: 600;
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 0;
-    font-family: inherit;
-    transition: color 0.15s;
-  }
-
-  .mm-forgot:hover { color: #085041; }
 
   .mm-input-wrap {
     position: relative;
@@ -181,38 +167,6 @@ const styles = `
 
   .mm-eye-btn:hover { color: #1a9e75; }
 
-  .mm-remember {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 1.25rem;
-    cursor: pointer;
-  }
-
-  .mm-checkbox {
-    width: 18px;
-    height: 18px;
-    border: 1.5px solid #d1d5db;
-    border-radius: 5px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #f9fafb;
-    transition: border-color 0.15s, background 0.15s;
-    flex-shrink: 0;
-  }
-
-  .mm-checkbox.checked {
-    background: #1a9e75;
-    border-color: #1a9e75;
-  }
-
-  .mm-remember-text {
-    font-size: 13px;
-    color: #6b7280;
-    user-select: none;
-  }
-
   .mm-signin-btn {
     width: 100%;
     height: 52px;
@@ -231,6 +185,7 @@ const styles = `
     font-family: inherit;
     letter-spacing: 0.2px;
     box-shadow: 0 6px 20px rgba(26, 158, 117, 0.35);
+    margin-top: 1rem;
   }
 
   .mm-signin-btn:hover { opacity: 0.92; box-shadow: 0 8px 24px rgba(26, 158, 117, 0.45); }
@@ -290,7 +245,6 @@ const styles = `
   }
 
   .mm-social-btn:hover { border-color: #1a9e75; background: #f0fdf9; transform: translateY(-1px); }
-  .mm-social-btn:active { transform: translateY(0); }
 
   .mm-join-row {
     text-align: center;
@@ -313,14 +267,9 @@ const styles = `
 
   .mm-join-link:hover { color: #085041; }
 
-  .mm-secure {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 11px;
-    color: rgba(255,255,255,0.6);
-    letter-spacing: 0.4px;
-    text-transform: uppercase;
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
   .mm-features {
@@ -329,6 +278,7 @@ const styles = `
     justify-content: center;
     gap: 1.25rem;
     flex-wrap: wrap;
+    animation: fadeInUp 0.5s ease 0.15s both;
   }
 
   .mm-feature-pill {
@@ -346,15 +296,14 @@ const styles = `
     border-radius: 50%;
     background: rgba(255,255,255,0.5);
   }
-
-  @keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(18px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .mm-card { animation: fadeInUp 0.5s ease both; }
-  .mm-features { animation: fadeInUp 0.5s ease 0.15s both; }
 `;
+
+const UserIcon = () => (
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+    <circle cx="12" cy="7" r="4" />
+  </svg>
+);
 
 const EmailIcon = () => (
   <svg width="17" height="17" viewBox="0 0 17 17" fill="none">
@@ -371,22 +320,11 @@ const LockIcon = () => (
   </svg>
 );
 
-const EyeIcon = ({ open }) => open ? (
+const EyeIcon = ({ open }) => (
   <svg width="17" height="17" viewBox="0 0 17 17" fill="none">
     <path d="M1.5 8.5S4 3.5 8.5 3.5 15.5 8.5 15.5 8.5 13 13.5 8.5 13.5 1.5 8.5 1.5 8.5z" stroke="currentColor" strokeWidth="1.4"/>
     <circle cx="8.5" cy="8.5" r="2" stroke="currentColor" strokeWidth="1.4"/>
-  </svg>
-) : (
-  <svg width="17" height="17" viewBox="0 0 17 17" fill="none">
-    <path d="M1.5 8.5S4 3.5 8.5 3.5 15.5 8.5 15.5 8.5 13 13.5 8.5 13.5 1.5 8.5 1.5 8.5z" stroke="currentColor" strokeWidth="1.4"/>
-    <circle cx="8.5" cy="8.5" r="2" stroke="currentColor" strokeWidth="1.4"/>
-    <line x1="3" y1="3" x2="14" y2="14" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-  </svg>
-);
-
-const CheckIcon = () => (
-  <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
-    <path d="M2 5.5l2.5 2.5L9 3" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+    {!open && <line x1="3" y1="3" x2="14" y2="14" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>}
   </svg>
 );
 
@@ -419,25 +357,18 @@ const ArrowIcon = () => (
   </svg>
 );
 
-const ShieldIcon = () => (
-  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-    <path d="M6 1L2 3v3c0 2.5 1.67 4.5 4 5 2.33-.5 4-2.5 4-5V3L6 1z" stroke="rgba(255,255,255,0.6)" strokeWidth="1.2"/>
-    <path d="M4 6l1.5 1.5L8 4.5" stroke="rgba(255,255,255,0.6)" strokeWidth="1.2" strokeLinecap="round"/>
-  </svg>
-);
-
-export default function LoginPage() {
+export default function RegisterPage() {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const navigate = useNavigate();
 
-
   const validate = () => {
     const errs = {};
+    if (!name) errs.name = "Full name is required";
     if (!email) errs.email = "Email is required";
     else if (!/\S+@\S+\.\S+/.test(email)) errs.email = "Enter a valid email address";
     if (!password) errs.password = "Password is required";
@@ -454,29 +385,20 @@ export default function LoginPage() {
     }
     setErrors({});
     setLoading(true);
-    
-    // Simulate API call with potential error
+    // Simulate API call
     await new Promise((r) => setTimeout(r, 1800));
-    
-    if (email === "error@example.com") {
-      setErrors({ auth: "Invalid email or password. Please try again." });
-      setLoading(false);
-      return;
-    }
-
-    // Track login in backend
+    // Track registration (login) in backend
     try {
       await trackLogin({
         email: email,
-        name: email.split('@')[0],
+        name: name,
         provider: 'email'
       });
     } catch (err) {
-      console.error("Failed to track login:", err);
+      console.error("Failed to track registration:", err);
     }
 
     setLoading(false);
-    // Redirect to chat after login
     navigate("/chat");
   };
 
@@ -484,13 +406,10 @@ export default function LoginPage() {
     onSuccess: async (tokenResponse) => {
       setLoading(true);
       try {
-        // Fetch user info from Google's userInfo endpoint using the access token
         const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
           headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
         });
         const userInfo = await res.json();
-        
-        // Store user info
         const user = {
           name: userInfo.name,
           email: userInfo.email,
@@ -499,95 +418,82 @@ export default function LoginPage() {
         };
         localStorage.setItem('user', JSON.stringify(user));
         
-        // Track login in backend
+        // Track registration in backend
         await trackLogin(user);
         
         navigate("/chat");
       } catch (err) {
-        setErrors({ auth: "Google login failed. Please try again." });
+        setErrors({ auth: "Google registration failed." });
       } finally {
         setLoading(false);
       }
     },
-    onError: () => setErrors({ auth: "Google login failed. Please try again." }),
+    onError: () => setErrors({ auth: "Google registration failed." }),
   });
-
-  const handleGithubLogin = () => {
-    const GITHUB_CLIENT_ID = "Ov23liNbgYQbGVGbuhYj";
-    const REDIRECT_URI = window.location.origin + "/chat";
-
-    const githubUrl = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&scope=user:email`;
-    
-    // For demo/development: if no ID, show error or simulate
-    if (GITHUB_CLIENT_ID === "YOUR_GITHUB_CLIENT_ID") {
-      console.log("GitHub Redirect URL:", githubUrl);
-      setErrors({ auth: "Please set YOUR_GITHUB_CLIENT_ID in the code." });
-    } else {
-      window.location.href = githubUrl;
-    }
-  };
 
   const handleSocialLogin = (provider) => {
     if (provider === 'google') {
       googleLogin();
     } else if (provider === 'github') {
-      handleGithubLogin();
+      const GITHUB_CLIENT_ID = "Ov23liNbgYQbGVGbuhYj";
+      const REDIRECT_URI = window.location.origin + "/chat";
+
+      window.location.href = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&scope=user:email`;
     }
   };
-
-
 
 
   return (
     <>
       <style>{styles}</style>
       <div className="mm-page">
-        {/* Background blobs */}
         <div className="mm-blob" style={{ width: 340, height: 340, top: -100, left: -100 }} />
         <div className="mm-blob" style={{ width: 220, height: 220, bottom: -60, right: -60 }} />
-        <div className="mm-blob" style={{ width: 130, height: 130, bottom: 140, left: 80 }} />
-        <div className="mm-blob" style={{ width: 80, height: 80, top: 60, right: 120 }} />
-
         <div className="mm-wrapper">
           <div className="mm-card">
-            {/* Header */}
             <div className="mm-header">
-              <div className="mm-logo">
+              <div className="mm-logo" onClick={() => navigate("/")}>
                 <BrainIcon />
               </div>
-              <h1 className="mm-title">Welcome back</h1>
-              <p className="mm-subtitle">Sign in to your MindMate account</p>
+              <h1 className="mm-title">Create Account</h1>
+              <p className="mm-subtitle">Join MindMate for a better mental health</p>
             </div>
 
-            {/* Form */}
             <form onSubmit={handleSubmit} noValidate>
               {errors.auth && (
-                <div style={{ 
-                  padding: '0.75rem', 
-                  backgroundColor: '#fef2f2', 
-                  border: '1px solid #fecaca', 
-                  borderRadius: '12px',
-                  color: '#dc2626',
-                  fontSize: '13px',
-                  marginBottom: '1.5rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px'
-                }}>
-                  <span style={{ fontSize: '16px' }}>⚠️</span>
-                  {errors.auth}
+                <div style={{ padding: '0.75rem', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '12px', color: '#dc2626', fontSize: '13px', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>⚠️</span> {errors.auth}
                 </div>
               )}
-              {/* Email */}
+              {/* Name */}
 
+              <div className="mm-group">
+                <div className="mm-label-row">
+                  <label className="mm-label">Full Name</label>
+                </div>
+                <div className="mm-input-wrap">
+                  <span className="mm-input-icon"><UserIcon /></span>
+                  <input
+                    className={`mm-input${errors.name ? " error" : ""}`}
+                    type="text"
+                    placeholder="Enter your name"
+                    value={name}
+                    onChange={(e) => {
+                      setName(e.target.value);
+                      if (errors.name) setErrors((p) => ({ ...p, name: "" }));
+                    }}
+                  />
+                </div>
+                {errors.name && <p className="mm-error-msg">{errors.name}</p>}
+              </div>
+
+              {/* Email */}
               <div className="mm-group">
                 <div className="mm-label-row">
                   <label className="mm-label">Email address</label>
                 </div>
                 <div className="mm-input-wrap">
-                  <span className="mm-input-icon">
-                    <EmailIcon />
-                  </span>
+                  <span className="mm-input-icon"><EmailIcon /></span>
                   <input
                     className={`mm-input${errors.email ? " error" : ""}`}
                     type="email"
@@ -597,7 +503,6 @@ export default function LoginPage() {
                       setEmail(e.target.value);
                       if (errors.email) setErrors((p) => ({ ...p, email: "" }));
                     }}
-                    autoComplete="email"
                   />
                 </div>
                 {errors.email && <p className="mm-error-msg">{errors.email}</p>}
@@ -607,28 +512,23 @@ export default function LoginPage() {
               <div className="mm-group">
                 <div className="mm-label-row">
                   <label className="mm-label">Password</label>
-                  <button type="button" className="mm-forgot">Forgot password?</button>
                 </div>
                 <div className="mm-input-wrap">
-                  <span className="mm-input-icon">
-                    <LockIcon />
-                  </span>
+                  <span className="mm-input-icon"><LockIcon /></span>
                   <input
                     className={`mm-input has-right${errors.password ? " error" : ""}`}
                     type={showPassword ? "text" : "password"}
-                    placeholder="Enter your password"
+                    placeholder="Create a password"
                     value={password}
                     onChange={(e) => {
                       setPassword(e.target.value);
                       if (errors.password) setErrors((p) => ({ ...p, password: "" }));
                     }}
-                    autoComplete="current-password"
                   />
                   <button
                     type="button"
                     className="mm-eye-btn"
                     onClick={() => setShowPassword((v) => !v)}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
                   >
                     <EyeIcon open={showPassword} />
                   </button>
@@ -636,90 +536,40 @@ export default function LoginPage() {
                 {errors.password && <p className="mm-error-msg">{errors.password}</p>}
               </div>
 
-              {/* Remember me */}
-              <div
-                className="mm-remember"
-                onClick={() => setRememberMe((v) => !v)}
-                role="checkbox"
-                aria-checked={rememberMe}
-                tabIndex={0}
-                onKeyDown={(e) => e.key === " " && setRememberMe((v) => !v)}
-              >
-                <div className={`mm-checkbox${rememberMe ? " checked" : ""}`}>
-                  {rememberMe && <CheckIcon />}
-                </div>
-                <span className="mm-remember-text">Remember me for 30 days</span>
-              </div>
-
-              {/* Sign In Button */}
               <button type="submit" className="mm-signin-btn" disabled={loading}>
-                {loading ? (
-                  <>
-                    <span className="mm-spinner" />
-                    Signing in…
-                  </>
-                ) : (
-                  <>
-                    Sign In
-                    <ArrowIcon />
-                  </>
-                )}
+                {loading ? <span className="mm-spinner" /> : <>Get Started <ArrowIcon /></>}
               </button>
             </form>
 
-            {/* Divider */}
             <div className="mm-divider">
               <div className="mm-divider-line" />
-              <span className="mm-divider-text">or continue with</span>
+              <span className="mm-divider-text">or sign up with</span>
               <div className="mm-divider-line" />
             </div>
 
-            {/* Social Buttons */}
             <div className="mm-social-row">
-              <button 
-                type="button" 
-                className="mm-social-btn"
-                onClick={() => handleSocialLogin("github")}
-                disabled={loading}
-              >
-                <GitHubIcon />
-                GitHub
+              <button type="button" className="mm-social-btn" onClick={() => handleSocialLogin("github")}>
+                <GitHubIcon /> GitHub
               </button>
-              <button 
-                type="button" 
-                className="mm-social-btn"
-                onClick={() => handleSocialLogin("google")}
-                disabled={loading}
-              >
-                <GoogleIcon />
-                Google
+              <button type="button" className="mm-social-btn" onClick={() => handleSocialLogin("google")}>
+                <GoogleIcon /> Google
               </button>
             </div>
 
-            {/* Join link */}
             <div className="mm-join-row">
-              New to MindMate?{" "}
-              <button type="button" className="mm-join-link" onClick={() => navigate("/register")}>
-                Create an account
+              Already have an account?{" "}
+              <button type="button" className="mm-join-link" onClick={() => navigate("/login")}>
+                Sign In
               </button>
             </div>
-
           </div>
 
-          {/* Bottom features */}
           <div className="mm-features">
-            {["AI-powered support", "Private & secure", "Available 24/7"].map((f) => (
+            {["Join 5,000+ users", "Secure & private"].map((f) => (
               <div className="mm-feature-pill" key={f}>
-                <div className="mm-feature-dot" />
-                {f}
+                <div className="mm-feature-dot" /> {f}
               </div>
             ))}
-          </div>
-
-          {/* Secure badge */}
-          <div className="mm-secure">
-            <ShieldIcon />
-            Secure authentication · Tech Titans
           </div>
         </div>
       </div>

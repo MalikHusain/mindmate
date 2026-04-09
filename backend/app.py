@@ -1,19 +1,19 @@
+from dotenv import load_dotenv
+load_dotenv()  # Load variables before importing database
+
 import os
 import json
 import re
 import random
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from dotenv import load_dotenv
 from database import (
     init_db, save_conversation, get_recent_moods, get_last_n_moods,
     get_all_conversations, save_journal_entry, get_journal_entries,
     get_mood_calendar, get_mood_streaks, save_gratitude_entry,
     get_gratitude_entries, get_achievements, unlock_achievement,
-    get_weekly_report, get_daily_quote
+    get_weekly_report, get_daily_quote, save_user_login
 )
-
-load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
@@ -185,6 +185,36 @@ def call_gemini(user_message, history_text=""):
 #  ROUTES
 # ============================================================
 
+@app.route("/api/login", methods=["POST"])
+def login_track():
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+    
+    user_id = save_user_login(data)
+    return jsonify({"message": "Login successful", "user_id": user_id})
+
+
+@app.route("/api/auth/github", methods=["POST"])
+def github_auth():
+    """Placeholder for GitHub OAuth logic."""
+    data = request.get_json()
+    code = data.get("code")
+    
+    # In a real app, you'd exchange 'code' for an access token here.
+    # For now, we'll return mock data to allow the frontend to proceed.
+    mock_user = {
+        "name": "GitHub User",
+        "email": f"github_{code[:8]}@example.com",
+        "provider": "github"
+    }
+    
+    return jsonify({
+        "token": "mock_github_token",
+        "user": mock_user
+    })
+
+
 @app.route("/api/chat", methods=["POST"])
 def chat():
     data = request.get_json()
@@ -193,10 +223,11 @@ def chat():
     if not user_message:
         return jsonify({"error": "Message is required"}), 400
 
-    recent_moods = get_last_n_moods(5)
+    user_id = data.get("user_id", "default_user")
+    recent_moods = get_last_n_moods(5, user_id=user_id)
     history_text = "\n".join([f"- User: {m.get('user_message', '')} (Emotion: {m.get('emotion', '')}, Severity: {m.get('severity', '')})" for m in recent_moods if 'user_message' in m])
     
-    # Reverse history_text so chronological order makes sense (from oldest of the recent to newest)
+    # Reverse history_text so chronological order makes sense
     history_lines = history_text.split('\n')
     history_lines.reverse()
     history_text = "\n".join(history_lines)
@@ -209,6 +240,7 @@ def chat():
         emotion=result["emotion"],
         severity=result["severity"],
         recommendation=result.get("recommendation", ""),
+        user_id=user_id
     )
 
     is_crisis = result["severity"] >= 8 and result["emotion"] == "Negative"
@@ -232,7 +264,8 @@ def chat():
 @app.route("/api/mood", methods=["GET"])
 def mood_data():
     days = request.args.get("days", 7, type=int)
-    moods = get_recent_moods(days)
+    user_id = request.args.get("user_id", "default_user")
+    moods = get_recent_moods(days, user_id=user_id)
 
     emotion_score = {"Positive": 3, "Neutral": 2, "Negative": 1}
     for m in moods:
@@ -269,7 +302,8 @@ def mood_data():
 
 @app.route("/api/personalization", methods=["GET"])
 def personalization():
-    recent = get_last_n_moods(5)
+    user_id = request.args.get("user_id", "default_user")
+    recent = get_last_n_moods(5, user_id=user_id)
 
     if not recent:
         return jsonify({
@@ -316,7 +350,8 @@ def personalization():
 
 @app.route("/api/conversations", methods=["GET"])
 def conversations():
-    convos = get_all_conversations()
+    user_id = request.args.get("user_id", "default_user")
+    convos = get_all_conversations(user_id=user_id)
     return jsonify({"conversations": convos})
 
 
@@ -330,13 +365,15 @@ def create_journal():
     if not content:
         return jsonify({"error": "Content is required"}), 400
 
-    entry_id = save_journal_entry(title=title, content=content, mood=mood)
+    user_id = data.get("user_id", "default_user")
+    entry_id = save_journal_entry(title=title, content=content, mood=mood, user_id=user_id)
     return jsonify({"id": entry_id, "message": "Journal saved!"})
 
 
 @app.route("/api/journal", methods=["GET"])
 def list_journal():
-    entries = get_journal_entries()
+    user_id = request.args.get("user_id", "default_user")
+    entries = get_journal_entries(user_id=user_id)
     return jsonify({"entries": entries})
 
 
@@ -352,32 +389,37 @@ def create_gratitude():
     if not items:
         return jsonify({"error": "At least one gratitude item is required"}), 400
 
-    entry_id = save_gratitude_entry(items)
+    user_id = data.get("user_id", "default_user")
+    entry_id = save_gratitude_entry(items, user_id=user_id)
     return jsonify({"id": entry_id, "message": "Gratitude saved!"})
 
 
 @app.route("/api/gratitude", methods=["GET"])
 def list_gratitude():
-    entries = get_gratitude_entries()
+    user_id = request.args.get("user_id", "default_user")
+    entries = get_gratitude_entries(user_id=user_id)
     return jsonify({"entries": entries})
 
 
 @app.route("/api/calendar", methods=["GET"])
 def calendar_data():
     days = request.args.get("days", 30, type=int)
-    data = get_mood_calendar(days)
+    user_id = request.args.get("user_id", "default_user")
+    data = get_mood_calendar(user_id=user_id, days=days)
     return jsonify({"calendar": data})
 
 
 @app.route("/api/streaks", methods=["GET"])
 def streaks():
-    streak_data = get_mood_streaks()
+    user_id = request.args.get("user_id", "default_user")
+    streak_data = get_mood_streaks(user_id=user_id)
     return jsonify(streak_data)
 
 
 @app.route("/api/achievements", methods=["GET"])
 def achievements():
-    badges = get_achievements()
+    user_id = request.args.get("user_id", "default_user")
+    badges = get_achievements(user_id=user_id)
     return jsonify({"achievements": badges})
 
 
@@ -385,14 +427,16 @@ def achievements():
 def manual_unlock():
     data = request.get_json()
     badge_id = data.get("badge_id", "")
+    user_id = data.get("user_id", "default_user")
     if badge_id:
-        unlock_achievement(badge_id)
+        unlock_achievement(badge_id, user_id=user_id)
     return jsonify({"message": "Achievement unlocked!"})
 
 
 @app.route("/api/weekly-report", methods=["GET"])
 def weekly_report():
-    report = get_weekly_report()
+    user_id = request.args.get("user_id", "default_user")
+    report = get_weekly_report(user_id=user_id)
     return jsonify(report)
 
 

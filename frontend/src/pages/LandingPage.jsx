@@ -134,7 +134,7 @@ function Nav({ nav }) {
             }} onMouseEnter={e=>e.target.style.color=C.primary} onMouseLeave={e=>e.target.style.color=C.onSurfaceVar}>
               Login
             </a>
-            <Btn onClick={()=>nav('/login')} style={{padding:'.65rem 1.75rem',fontSize:'.9rem'}}>Get Started</Btn>
+            <Btn onClick={()=>nav('/register')} style={{padding:'.65rem 1.75rem',fontSize:'.9rem'}}>Get Started</Btn>
           </div>
 
           {/* Hamburger */}
