@@ -67,7 +67,8 @@ function Btn({ children, onClick, outline = false, style = {} }) {
       style={{
         background: outline ? C.surfaceBright : `linear-gradient(135deg,${C.primary},${C.primaryCont})`,
         color: outline ? C.primary : '#fff',
-        border: 'none', borderRadius: 9999, cursor: 'pointer',
+        border: outline ? `1.5px solid ${C.outlineVar}` : 'none',
+        borderRadius: 9999, cursor: 'pointer',
         padding: '1rem 2.5rem',
         fontFamily: font.body, fontWeight: 700, fontSize: '1rem',
         transition: 'all .2s',
@@ -117,7 +118,7 @@ function Nav({ nav }) {
 
           {/* Desktop links */}
           <div className="mm-nav-links" style={{alignItems:'center',gap:40}}>
-            {['Features','Process','Stories'].map((l,i)=>(
+            {['Features','Process'].map((l,i)=>(
               <a key={l} href={`#${l.toLowerCase()}`} style={{
                 fontFamily:font.body,fontWeight:i===0?700:500,
                 color:i===0?C.primary:C.onSurfaceVar,
@@ -151,7 +152,7 @@ function Nav({ nav }) {
             background:C.surface,borderTop:`1px solid ${C.outlineVar}33`,
             padding:'1rem 2rem 1.5rem',display:'flex',flexDirection:'column',gap:16,
           }}>
-            {['Features','Process','Stories'].map(l=>(
+            {['Features','Process'].map(l=>(
               <a key={l} href={`#${l.toLowerCase()}`} onClick={()=>setOpen(false)} style={{
                 fontFamily:font.body,fontWeight:600,color:C.onSurface,textDecoration:'none',fontSize:'1rem',
               }}>{l}</a>
@@ -166,6 +167,217 @@ function Nav({ nav }) {
         )}
       </header>
     </>
+  )
+}
+
+/* ─── Mind Illustration (replaces stock photo) ────────────────────────── */
+function MindIllustration() {
+  return (
+    <div style={{
+      borderRadius:'3rem',
+      overflow:'hidden',
+      background:`linear-gradient(145deg,${C.primaryFixed}28,${C.secondaryFixed}20,${C.surfaceContLow})`,
+      boxShadow:'0 32px 80px rgba(0,97,98,.18)',
+      position:'relative',
+      aspectRatio:'1/1',
+      display:'flex',
+      alignItems:'center',
+      justifyContent:'center',
+      border:`1px solid ${C.outlineVar}22`,
+    }}>
+      <style>{`
+        @keyframes mm-float1{0%,100%{transform:translateY(0px)}50%{transform:translateY(-14px)}}
+        @keyframes mm-float2{0%,100%{transform:translateY(0px)}50%{transform:translateY(-9px)}}
+        @keyframes mm-float3{0%,100%{transform:translateY(-5px)}50%{transform:translateY(7px)}}
+        @keyframes mm-pulse{0%,100%{opacity:.22;transform:scale(.9)}50%{opacity:.08;transform:scale(1.08)}}
+        @keyframes mm-dash{to{stroke-dashoffset:-240}}
+        @keyframes mm-beat{0%,100%{opacity:.9;stroke-width:2.2}50%{opacity:.45;stroke-width:1.6}}
+        @keyframes mm-spin-slow{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+        @keyframes mm-glow{0%,100%{opacity:.5}50%{opacity:1}}
+      `}</style>
+
+      <svg
+        viewBox="0 0 480 480"
+        xmlns="http://www.w3.org/2000/svg"
+        style={{width:'88%',height:'88%',overflow:'visible'}}
+        aria-label="MindMate neural mind illustration"
+      >
+        {/* ── Outer pulse rings ── */}
+        <circle cx="240" cy="224" r="138" fill="none" stroke="#006162" strokeWidth="1"
+          style={{animation:'mm-pulse 4.2s ease-in-out infinite',transformOrigin:'240px 224px'}}/>
+        <circle cx="240" cy="224" r="164" fill="none" stroke="#006162" strokeWidth=".5"
+          style={{animation:'mm-pulse 4.2s ease-in-out infinite',animationDelay:'.9s',transformOrigin:'240px 224px'}}/>
+
+        {/* ── Decorative orbit ring ── */}
+        <circle cx="240" cy="224" r="112" fill="none" stroke="#006162" strokeWidth=".8"
+          strokeDasharray="3 8" opacity=".18"
+          style={{animation:'mm-spin-slow 30s linear infinite',transformOrigin:'240px 224px'}}/>
+
+        {/* ── Center glow disc ── */}
+        <circle cx="240" cy="224" r="78" fill="#006162" opacity=".06"/>
+        <circle cx="240" cy="224" r="78" fill="none" stroke="#006162" strokeWidth="1.5" opacity=".25"/>
+
+        {/* ── Abstract brain left lobe ── */}
+        <path
+          d="M240,148 C218,134 185,138 172,162 C158,188 163,218 180,236 C194,250 218,254 240,248"
+          fill="#006162" fillOpacity=".14" stroke="#006162" strokeWidth="1.5" strokeOpacity=".35"/>
+
+        {/* ── Abstract brain right lobe ── */}
+        <path
+          d="M240,148 C262,134 295,138 308,162 C322,188 317,218 300,236 C286,250 262,254 240,248"
+          fill="#2c7a7b" fillOpacity=".11" stroke="#2c7a7b" strokeWidth="1.5" strokeOpacity=".3"/>
+
+        {/* ── Corpus callosum line ── */}
+        <path d="M240,152 Q246,194 240,248" fill="none" stroke="#006162"
+          strokeWidth="1" strokeOpacity=".2" strokeDasharray="3 4"/>
+
+        {/* ── Neural connection lines (animated dash) ── */}
+        <line x1="240" y1="224" x2="120" y2="138" stroke="#006162" strokeWidth="1"
+          strokeOpacity=".22" strokeDasharray="5 5"
+          style={{animation:'mm-dash 7s linear infinite'}}/>
+        <line x1="240" y1="224" x2="364" y2="130" stroke="#006398" strokeWidth="1"
+          strokeOpacity=".22" strokeDasharray="5 5"
+          style={{animation:'mm-dash 7s linear infinite',animationDelay:'1s'}}/>
+        <line x1="240" y1="224" x2="96" y2="300" stroke="#006162" strokeWidth="1"
+          strokeOpacity=".22" strokeDasharray="5 5"
+          style={{animation:'mm-dash 7s linear infinite',animationDelay:'.5s'}}/>
+        <line x1="240" y1="224" x2="382" y2="310" stroke="#006398" strokeWidth="1"
+          strokeOpacity=".22" strokeDasharray="5 5"
+          style={{animation:'mm-dash 7s linear infinite',animationDelay:'1.6s'}}/>
+        <line x1="240" y1="224" x2="192" y2="356" stroke="#006162" strokeWidth="1"
+          strokeOpacity=".22" strokeDasharray="5 5"
+          style={{animation:'mm-dash 7s linear infinite',animationDelay:'.3s'}}/>
+        <line x1="240" y1="224" x2="292" y2="358" stroke="#006398" strokeWidth="1"
+          strokeOpacity=".22" strokeDasharray="5 5"
+          style={{animation:'mm-dash 7s linear infinite',animationDelay:'2.1s'}}/>
+
+        {/* ── EEG / heartbeat line ── */}
+        <path
+          d="M183,224 L202,224 L211,202 L220,246 L229,212 L238,232 L247,224 L297,224"
+          fill="none" stroke="#006162" strokeWidth="2.2"
+          strokeLinecap="round" strokeLinejoin="round"
+          style={{animation:'mm-beat 2.6s ease-in-out infinite'}}/>
+
+        {/* ── Node dots at connection ends ── */}
+        <circle cx="120" cy="138" r="5.5" fill="#006162" opacity=".45"
+          style={{animation:'mm-glow 3s ease-in-out infinite'}}/>
+        <circle cx="364" cy="130" r="5.5" fill="#006398" opacity=".45"
+          style={{animation:'mm-glow 3s ease-in-out infinite',animationDelay:'.6s'}}/>
+        <circle cx="96"  cy="300" r="5"   fill="#006162" opacity=".4"
+          style={{animation:'mm-glow 3s ease-in-out infinite',animationDelay:'1.2s'}}/>
+        <circle cx="382" cy="310" r="5"   fill="#006398" opacity=".4"
+          style={{animation:'mm-glow 3s ease-in-out infinite',animationDelay:'1.8s'}}/>
+        <circle cx="192" cy="356" r="4.5" fill="#006162" opacity=".38"
+          style={{animation:'mm-glow 3s ease-in-out infinite',animationDelay:'2.4s'}}/>
+        <circle cx="292" cy="358" r="4.5" fill="#006398" opacity=".38"
+          style={{animation:'mm-glow 3s ease-in-out infinite',animationDelay:'.9s'}}/>
+
+        {/* ── Floating concept cards ── */}
+
+        {/* Card: Calm — top left */}
+        <g style={{animation:'mm-float1 5.2s ease-in-out infinite'}}>
+          <rect x="44" y="100" width="100" height="48" rx="13"
+            fill="white" fillOpacity=".92" stroke="#006162" strokeWidth=".8" strokeOpacity=".4"/>
+          <circle cx="66" cy="124" r="9" fill="#006162" fillOpacity=".85"/>
+          <rect x="82" y="117" width="46" height="7" rx="3.5" fill="#006162" fillOpacity=".25"/>
+          <rect x="82" y="128" width="34" height="5.5" rx="2.75" fill="#006162" fillOpacity=".12"/>
+          <text x="66" y="128" textAnchor="middle" fontSize="9.5" fontWeight="700"
+            fill="#006162" fontFamily="Manrope,sans-serif" fillOpacity=".95">☯</text>
+        </g>
+        <text x="94" y="96" textAnchor="middle" fontSize="10.5" fontWeight="700"
+          fill="#006162" fontFamily="Manrope,sans-serif" fillOpacity=".8">Calm</text>
+
+        {/* Card: Focus — top right */}
+        <g style={{animation:'mm-float2 6.1s ease-in-out infinite',animationDelay:'.7s'}}>
+          <rect x="338" y="88" width="100" height="48" rx="13"
+            fill="white" fillOpacity=".92" stroke="#006398" strokeWidth=".8" strokeOpacity=".4"/>
+          <circle cx="360" cy="112" r="9" fill="#006398" fillOpacity=".85"/>
+          <rect x="376" y="105" width="46" height="7" rx="3.5" fill="#006398" fillOpacity=".25"/>
+          <rect x="376" y="116" width="30" height="5.5" rx="2.75" fill="#006398" fillOpacity=".12"/>
+          <text x="360" y="116" textAnchor="middle" fontSize="9.5" fontWeight="700"
+            fill="white" fontFamily="Manrope,sans-serif">◎</text>
+        </g>
+        <text x="388" y="84" textAnchor="middle" fontSize="10.5" fontWeight="700"
+          fill="#006398" fontFamily="Manrope,sans-serif" fillOpacity=".8">Focus</text>
+
+        {/* Card: Breathe — mid left */}
+        <g style={{animation:'mm-float3 7s ease-in-out infinite',animationDelay:'1.2s'}}>
+          <rect x="28" y="278" width="108" height="48" rx="13"
+            fill="white" fillOpacity=".92" stroke="#006162" strokeWidth=".8" strokeOpacity=".4"/>
+          <circle cx="52" cy="302" r="9" fill="#006162" fillOpacity=".85"/>
+          <rect x="68" y="295" width="50" height="7" rx="3.5" fill="#006162" fillOpacity=".25"/>
+          <rect x="68" y="306" width="38" height="5.5" rx="2.75" fill="#006162" fillOpacity=".12"/>
+          <text x="52" y="306" textAnchor="middle" fontSize="9" fontWeight="700"
+            fill="white" fontFamily="Manrope,sans-serif">♡</text>
+        </g>
+        <text x="82" y="274" textAnchor="middle" fontSize="10.5" fontWeight="700"
+          fill="#006162" fontFamily="Manrope,sans-serif" fillOpacity=".8">Breathe</text>
+
+        {/* Card: Reflect — mid right */}
+        <g style={{animation:'mm-float1 5.8s ease-in-out infinite',animationDelay:'2s'}}>
+          <rect x="352" y="280" width="104" height="48" rx="13"
+            fill="white" fillOpacity=".92" stroke="#006398" strokeWidth=".8" strokeOpacity=".4"/>
+          <circle cx="374" cy="304" r="9" fill="#006398" fillOpacity=".85"/>
+          <rect x="390" y="297" width="48" height="7" rx="3.5" fill="#006398" fillOpacity=".25"/>
+          <rect x="390" y="308" width="32" height="5.5" rx="2.75" fill="#006398" fillOpacity=".12"/>
+          <text x="374" y="308" textAnchor="middle" fontSize="8.5" fontWeight="700"
+            fill="white" fontFamily="Manrope,sans-serif">✦</text>
+        </g>
+        <text x="404" y="276" textAnchor="middle" fontSize="10.5" fontWeight="700"
+          fill="#006398" fontFamily="Manrope,sans-serif" fillOpacity=".8">Reflect</text>
+
+        {/* Card: Clarity — bottom left */}
+        <g style={{animation:'mm-float2 6.4s ease-in-out infinite',animationDelay:'.4s'}}>
+          <rect x="120" y="354" width="96" height="44" rx="12"
+            fill="white" fillOpacity=".9" stroke="#006162" strokeWidth=".8" strokeOpacity=".35"/>
+          <circle cx="142" cy="376" r="8" fill="#006162" fillOpacity=".8"/>
+          <rect x="156" y="370" width="42" height="6" rx="3" fill="#006162" fillOpacity=".22"/>
+          <rect x="156" y="380" width="30" height="5" rx="2.5" fill="#006162" fillOpacity=".1"/>
+          <text x="142" y="380" textAnchor="middle" fontSize="9" fontWeight="700"
+            fill="white" fontFamily="Manrope,sans-serif">◇</text>
+        </g>
+        <text x="168" y="350" textAnchor="middle" fontSize="10.5" fontWeight="700"
+          fill="#006162" fontFamily="Manrope,sans-serif" fillOpacity=".8">Clarity</text>
+
+        {/* Card: Grow — bottom right */}
+        <g style={{animation:'mm-float3 5.6s ease-in-out infinite',animationDelay:'1.8s'}}>
+          <rect x="272" y="358" width="90" height="44" rx="12"
+            fill="white" fillOpacity=".9" stroke="#006398" strokeWidth=".8" strokeOpacity=".35"/>
+          <circle cx="294" cy="380" r="8" fill="#006398" fillOpacity=".8"/>
+          <rect x="308" y="374" width="38" height="6" rx="3" fill="#006398" fillOpacity=".22"/>
+          <rect x="308" y="384" width="26" height="5" rx="2.5" fill="#006398" fillOpacity=".1"/>
+          <text x="294" y="384" textAnchor="middle" fontSize="9" fontWeight="700"
+            fill="white" fontFamily="Manrope,sans-serif">▲</text>
+        </g>
+        <text x="317" y="354" textAnchor="middle" fontSize="10.5" fontWeight="700"
+          fill="#006398" fontFamily="Manrope,sans-serif" fillOpacity=".8">Grow</text>
+      </svg>
+
+      {/* ── Floating info card (bottom overlay) ── */}
+      <div style={{
+        position:'absolute',bottom:28,left:28,right:28,
+        background:'rgba(255,255,255,.88)',backdropFilter:'blur(24px)',WebkitBackdropFilter:'blur(24px)',
+        borderRadius:'1rem',padding:'1.1rem 1.4rem',
+        boxShadow:'0 8px 32px rgba(0,97,98,.14)',
+        border:'1px solid rgba(255,255,255,.4)',
+        display:'flex',alignItems:'center',gap:14,
+      }}>
+        <div style={{
+          width:44,height:44,background:C.primary,borderRadius:'50%',
+          display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,
+        }}>
+          <Icon name="graphic_eq" size={20} color="#fff"/>
+        </div>
+        <div>
+          <p style={{fontFamily:font.body,fontWeight:700,color:C.onSurface,margin:0,fontSize:'.92rem'}}>"I'm here for you."</p>
+          <p style={{fontFamily:font.body,fontSize:'.78rem',color:C.onSurfaceVar,fontStyle:'italic',margin:'2px 0 0'}}>Active Listening Mode</p>
+        </div>
+        <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:6}}>
+          <div style={{width:8,height:8,borderRadius:'50%',background:'#22c55e',animation:'mm-glow 2s ease-in-out infinite'}}/>
+          <span style={{fontFamily:font.body,fontSize:'.72rem',fontWeight:700,color:'#22c55e'}}>Live</span>
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -209,40 +421,26 @@ function Hero({ nav }) {
             </p>
 
             <div className="hero-btns">
-              <Btn onClick={()=>nav('/chat')}>Start Your Journey</Btn>
-              <Btn outline>Watch Video</Btn>
+              <Btn onClick={()=>nav('/login')}>Start Your Journey</Btn>
+            </div>
+
+            {/* Trust badges */}
+            <div style={{display:'flex',gap:24,flexWrap:'wrap',marginTop:4}}>
+              {[
+                {icon:'lock',label:'End-to-End Encrypted'},
+                {icon:'verified_user',label:'HIPAA Compliant'},
+                {icon:'star',label:'4.9 / 5 Rating'},
+              ].map(b=>(
+                <div key={b.label} style={{display:'flex',alignItems:'center',gap:6}}>
+                  <Icon name={b.icon} size={14} color={C.primary}/>
+                  <span style={{fontFamily:font.body,fontSize:'.75rem',fontWeight:600,color:C.onSurfaceVar}}>{b.label}</span>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Right */}
-          <div style={{position:'relative'}}>
-            <div style={{borderRadius:'3rem',overflow:'hidden',background:C.surfaceContLow,boxShadow:'0 32px 80px rgba(0,97,98,.18)',position:'relative',aspectRatio:'1/1'}}>
-              <img
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuAmuofbc64NapB4U1d78Kq_KQ40F6QCMbuI7C5H8N7kx0u84m4wHIwwyydbva2gGyUVq7e4_UaLxITg_iKEsZ0a5eo7i7HEccd3lWpDR8_PGboRd9osEms6P9z18Z-c8t4gu7qsNyGgixMYi9TD1H_4TDApvdkZw5CbIgpAA_IbL6KRw-MqUHtItASvPW5SJGfRoEsn-ewjF7XWeSO-JxJlx_dq19ykmTJRiWgQZEnhGixDX5i-q_4OQJlfBkCIl4yHVyf1Bh7u2_0Z"
-                alt="AI Companion"
-                style={{width:'100%',height:'100%',objectFit:'cover',display:'block',transition:'transform .7s'}}
-                onMouseEnter={e=>e.target.style.transform='scale(1.05)'}
-                onMouseLeave={e=>e.target.style.transform='scale(1)'}
-              />
-              <div style={{position:'absolute',inset:0,background:`linear-gradient(to top,${C.primary}4d,transparent)`}}/>
-              {/* Floating card */}
-              <div style={{
-                position:'absolute',bottom:28,left:28,right:28,
-                background:'rgba(255,255,255,.85)',backdropFilter:'blur(24px)',WebkitBackdropFilter:'blur(24px)',
-                borderRadius:'1rem',padding:'1.25rem 1.5rem',
-                boxShadow:'0 8px 32px rgba(0,0,0,.12)',border:'1px solid rgba(255,255,255,.3)',
-                display:'flex',alignItems:'center',gap:16,
-              }}>
-                <div style={{width:48,height:48,background:C.primary,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                  <Icon name="graphic_eq" size={22} color="#fff"/>
-                </div>
-                <div>
-                  <p style={{fontFamily:font.body,fontWeight:700,color:C.onSurface,margin:0,fontSize:'.95rem'}}>"I'm here for you."</p>
-                  <p style={{fontFamily:font.body,fontSize:'.8rem',color:C.onSurfaceVar,fontStyle:'italic',margin:'2px 0 0'}}>Active Listening Mode</p>
-                </div>
-              </div>
-            </div>
-          </div>
+          {/* Right — professional SVG illustration */}
+          <MindIllustration />
         </div>
       </div>
     </section>
@@ -288,7 +486,7 @@ function AbstractSupport() {
               Our AI isn't just about logic — it's trained on thousands of therapeutic frameworks to understand the nuance of human emotion. Whether you're feeling anxious, lonely, or just need to vent, MindMate adapts to your mood in real-time.
             </p>
             <ul style={{listStyle:'none',padding:0,margin:0,display:'flex',flexDirection:'column',gap:14}}>
-              {['Neural Emotion Recognition','Cognitive Behavioral Adaptations'].map(item=>(
+              {['Neural Emotion Recognition','Cognitive Behavioral Adaptations','Real-time Mood Adaptation'].map(item=>(
                 <li key={item} style={{display:'flex',alignItems:'center',gap:12}}>
                   <div style={{width:28,height:28,borderRadius:'50%',background:`${C.primary}18`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
                     <Icon name="check" size={16} color={C.primary}/>
@@ -337,7 +535,7 @@ function Features() {
               </p>
             </div>
             <div style={{display:'flex',gap:10,flexWrap:'wrap',marginTop:28}}>
-              {['Always Available','Real-time Response'].map(t=>(
+              {['Always Available','Real-time Response','No Waiting Room'].map(t=>(
                 <span key={t} style={{padding:'.5rem 1.25rem',background:C.surfaceCont,borderRadius:9999,fontFamily:font.body,fontWeight:700,fontSize:'.85rem',color:C.onSurface}}>{t}</span>
               ))}
             </div>
@@ -388,49 +586,6 @@ function Features() {
   )
 }
 
-/* ─── Testimonials ────────────────────────────────────────────────────── */
-const TESTS = [
-  { q:'"MindMate has become a daily ritual. It\'s like having a therapist in my pocket who knows exactly what to say when I\'m overwhelmed."', name:'Sarah Jenkins', role:'Marketing Director', img:'https://lh3.googleusercontent.com/aida-public/AB6AXuCmi_iAbfOWDDhs1c2Ztc-Dt5Xm1HKeyOkANlmE9oRpMyBm_LPKjgAbMlkFuDb6kQoI0CD6V4-xfBhDNfYMmhNjl0gVfsnpNnTg3RA4VsnvKgREc0A6E912gdMgcv-TyGV5IkNax-dLg8h7-emj9SsEztQEM9F45_oVS8F4H7GAQH-XOzxEQvoSsaQl3TFeSVKRWbK4ZvFMjhFD3asKmkpcUW1YBeYg1KmQyMV3hv632G0JUIltr4S2ue-R76ZXHTJaq-UNsRfsJw86', offset:0},
-  { q:'"The insights I get about my mood trends have been eye-opening. I\'ve finally identified the triggers I couldn\'t see before."',         name:'David Chen',    role:'Software Architect',  img:'https://lh3.googleusercontent.com/aida-public/AB6AXuD9nIz02lJz58zzzC4t1fFg3FfgD4ZY2k3gTiUfOpnFp0Dg4HRSVt5MqstPMFV4cr3V_BRxZpudMkb6Jg2poApBFYOg4TUzmCLb3lx3-FXS-AJ4lMDqPPaDutm7JQNACBnSSt-WPYrwlhZZTVofbGDVl80vLuv6s2o6mctBESjgunTchxLGIfp3cFXhrcwMdVjHXj4db7E8_8p6HP-2HSMO2oL8hz0pUau4nn3Qk1hnQGuVvVRXs1nNH-TL6agL6kvFpK4B6yyZi4xz', offset:40},
-  { q:'"I was skeptical about AI, but the level of empathy and understanding here is remarkable. It truly feels like it cares."',               name:'Elena Rodriguez',role:'Graphic Designer',    img:'https://lh3.googleusercontent.com/aida-public/AB6AXuCWMSRk_fW9FZZFn5REohUack-LaGxM5yCQqc9RhxzGRMYDcc75Jc4Jjclebs0enbGZsAXtTj2CJYuQb43JNRXlE6pSYHPscSrDJtPBwbH44-osYLKWrZyTHx2wiNVJOOvS04cCdPNl_qzMYbCSnOjwfy6o-y-9_24LqRChzkxWHtb9Uadd0u9mvSZ47O0rzxnVLdaGnnvjnksmVeSSLzgh-b3xmtBIk93_UyE0esAL80cL0PMfRvHbT0D8sJ4yM_Q0I3dTe1YFdtNm', offset:0},
-]
-
-function Testimonials() {
-  return (
-    <section id="stories" style={{padding:'8rem 0',background:C.surfaceContLow}}>
-      <style>{`
-        .test-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;align-items:start}
-        @media(max-width:768px){.test-grid{grid-template-columns:1fr!important}.test-offset{margin-top:0!important}}
-      `}</style>
-      <div style={{maxWidth:1280,margin:'0 auto',padding:'0 2rem',boxSizing:'border-box'}}>
-        <div style={{marginBottom:56}}>
-          <span style={{fontFamily:font.body,fontWeight:700,color:C.primary,fontSize:'.8rem',letterSpacing:'.14em',textTransform:'uppercase',display:'block',marginBottom:12}}>User Stories</span>
-          <h2 style={{fontFamily:font.headline,fontWeight:800,fontSize:'clamp(1.75rem,3.5vw,2.5rem)',color:C.onSurface,margin:0,maxWidth:480}}>
-            Trusted by thousands finding their inner calm.
-          </h2>
-        </div>
-        <div className="test-grid">
-          {TESTS.map((t,i)=>(
-            <div key={i} className="test-offset" style={{marginTop:t.offset}}>
-              <div style={{background:C.surfaceBright,borderRadius:'2rem',padding:'2.5rem',boxShadow:'0 10px 40px rgba(26,28,28,.06)',position:'relative',display:'flex',flexDirection:'column',gap:24}}>
-                <Icon name="format_quote" size={64} color={`${C.primary}22`} filled style={{position:'absolute',top:24,right:24}}/>
-                <p style={{fontFamily:font.body,fontSize:'1.05rem',fontStyle:'italic',color:C.onSurface,lineHeight:1.7,margin:0,position:'relative',zIndex:1}}>{t.q}</p>
-                <div style={{display:'flex',alignItems:'center',gap:14}}>
-                  <img src={t.img} alt={t.name} style={{width:48,height:48,borderRadius:'50%',objectFit:'cover',display:'block',flexShrink:0}}/>
-                  <div>
-                    <p style={{fontFamily:font.body,fontWeight:700,color:C.onSurface,margin:0,fontSize:'.95rem'}}>{t.name}</p>
-                    <p style={{fontFamily:font.body,fontSize:'.82rem',color:C.onSurfaceVar,margin:'2px 0 0'}}>{t.role}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
-}
-
 /* ─── CTA ─────────────────────────────────────────────────────────────── */
 function CTA({ nav }) {
   const [email,setEmail]=useState('')
@@ -461,7 +616,14 @@ function CTA({ nav }) {
                 placeholder="Your email address"
                 style={{flex:1,borderRadius:9999,padding:'1rem 1.5rem',background:'rgba(255,255,255,.15)',border:'1px solid rgba(255,255,255,.25)',color:'#fff',fontFamily:font.body,fontSize:'.95rem',outline:'none',backdropFilter:'blur(10px)',minWidth:0}}
               />
-              <button onClick={()=>nav('/chat')}
+              <button onClick={() => {
+                if(email) {
+                  alert("Thank you for your interest! We'll notify you soon.");
+                  setEmail('');
+                } else {
+                  alert("Please enter a valid email address.");
+                }
+              }}
                 style={{background:'#fff',color:C.primary,border:'none',borderRadius:9999,padding:'1rem 1.75rem',fontFamily:font.body,fontWeight:700,cursor:'pointer',whiteSpace:'nowrap',flexShrink:0,transition:'all .2s'}}
                 onMouseEnter={e=>e.currentTarget.style.background=C.surfaceContLow}
                 onMouseLeave={e=>e.currentTarget.style.background='#fff'}>
@@ -525,12 +687,30 @@ function Footer() {
   )
 }
 
+/* ─── Root ────────────────────────────────────────────────────────────── */
+export default function LandingPage() {
+  const navigate = useNavigate()
+  return (
+    <div style={{minHeight:'100vh',background:C.surface,color:C.onSurface,overflowX:'hidden',fontFamily:font.body}}>
+      <style>{`*{box-sizing:border-box}img{max-width:100%}a{-webkit-tap-highlight-color:transparent}`}</style>
+      <Nav nav={navigate}/>
+      <main style={{paddingTop:72,paddingBottom:80}}>
+        <Hero nav={navigate}/>
+        <AbstractSupport/>
+        <Features/>
+        <CTA nav={navigate}/>
+      </main>
+      <Footer/>
+      <BottomNav nav={navigate}/>
+    </div>
+  )
+}
+
 /* ─── Bottom mobile nav ───────────────────────────────────────────────── */
 function BottomNav({ nav }) {
   const items=[
     {icon:'auto_awesome',label:'Features',href:'#features'},
     {icon:'psychology',  label:'Process', href:'#process'},
-    {icon:'format_quote',label:'Stories', href:'#stories'},
     {icon:'mail',        label:'Contact', href:'#contact'},
   ]
   const [active,setActive]=useState(0)
@@ -564,22 +744,3 @@ function BottomNav({ nav }) {
   )
 }
 
-/* ─── Root ────────────────────────────────────────────────────────────── */
-export default function LandingPage() {
-  const navigate = useNavigate()
-  return (
-    <div style={{minHeight:'100vh',background:C.surface,color:C.onSurface,overflowX:'hidden',fontFamily:font.body}}>
-      <style>{`*{box-sizing:border-box}img{max-width:100%}a{-webkit-tap-highlight-color:transparent}`}</style>
-      <Nav nav={navigate}/>
-      <main style={{paddingTop:72,paddingBottom:80}}>
-        <Hero nav={navigate}/>
-        <AbstractSupport/>
-        <Features/>
-        <Testimonials/>
-        <CTA nav={navigate}/>
-      </main>
-      <Footer/>
-      <BottomNav nav={navigate}/>
-    </div>
-  )
-}

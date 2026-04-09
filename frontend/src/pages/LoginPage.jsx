@@ -6,6 +6,12 @@ import { trackLogin } from '../api';
 
 
 
+if (!document.getElementById('mm-fonts')) {
+  const l2 = document.createElement('link'); l2.id = 'mm-fonts'; l2.rel = 'stylesheet'
+  l2.href = 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap'
+  document.head.appendChild(l2)
+}
+
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
@@ -551,12 +557,24 @@ export default function LoginPage() {
         <div className="mm-wrapper">
           <div className="mm-card">
             {/* Header */}
-            <div className="mm-header">
-              <div className="mm-logo">
-                <BrainIcon />
+            <div className="mm-header" onClick={() => navigate("/")} style={{ cursor: 'pointer' }}>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                <span style={{ 
+                  fontFamily: '"Material Symbols Outlined"', 
+                  fontSize: '32px', 
+                  color: '#006162' 
+                }}>spa</span>
+                <span style={{ 
+                  fontFamily: '"Plus Jakarta Sans", sans-serif', 
+                  fontWeight: 800, 
+                  fontSize: '1.75rem',
+                  background: 'linear-gradient(135deg, #006162, #006398)',
+                  WebkitBackgroundClip: 'text', 
+                  WebkitTextFillColor: 'transparent', 
+                  backgroundClip: 'text',
+                }}>MindMate</span>
               </div>
-              <h1 className="mm-title">Welcome back</h1>
-              <p className="mm-subtitle">Sign in to your MindMate account</p>
+              <p className="mm-subtitle">Welcome back! Please sign in to continue.</p>
             </div>
 
             {/* Form */}

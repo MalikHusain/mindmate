@@ -4,6 +4,12 @@ import { useGoogleLogin } from '@react-oauth/google';
 import { trackLogin } from '../api';
 
 
+if (!document.getElementById('mm-fonts')) {
+  const l2 = document.createElement('link'); l2.id = 'mm-fonts'; l2.rel = 'stylesheet'
+  l2.href = 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap'
+  document.head.appendChild(l2)
+}
+
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
@@ -451,12 +457,24 @@ export default function RegisterPage() {
         <div className="mm-blob" style={{ width: 220, height: 220, bottom: -60, right: -60 }} />
         <div className="mm-wrapper">
           <div className="mm-card">
-            <div className="mm-header">
-              <div className="mm-logo" onClick={() => navigate("/")}>
-                <BrainIcon />
+            <div className="mm-header" onClick={() => navigate("/")} style={{ cursor: 'pointer' }}>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                <span style={{ 
+                  fontFamily: '"Material Symbols Outlined"', 
+                  fontSize: '32px', 
+                  color: '#006162' 
+                }}>spa</span>
+                <span style={{ 
+                  fontFamily: '"Plus Jakarta Sans", sans-serif', 
+                  fontWeight: 800, 
+                  fontSize: '1.75rem',
+                  background: 'linear-gradient(135deg, #006162, #006398)',
+                  WebkitBackgroundClip: 'text', 
+                  WebkitTextFillColor: 'transparent', 
+                  backgroundClip: 'text',
+                }}>MindMate</span>
               </div>
-              <h1 className="mm-title">Create Account</h1>
-              <p className="mm-subtitle">Join MindMate for a better mental health</p>
+              <p className="mm-subtitle">Join us and start your mental health journey</p>
             </div>
 
             <form onSubmit={handleSubmit} noValidate>
