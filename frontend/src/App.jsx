@@ -29,7 +29,7 @@ import BreathingPage from './pages/BreathingPage'
 // New pages
 import GratitudeJournalPage from './pages/GratitudeJournalPage'
 import CrisisSupportPage from './pages/CrisisSupportPage'
-import ProfileSettingsPage from './pages/ProfileSettingsPage'
+import ProfileSettingsPage from './pages/Profilesettingspage'
 import RegisterPage from './pages/RegisterPage'
 
 
