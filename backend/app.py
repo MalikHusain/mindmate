@@ -12,7 +12,8 @@ from database import (
     get_all_conversations, save_journal_entry, get_journal_entries,
     get_mood_calendar, get_mood_streaks, save_gratitude_entry,
     get_gratitude_entries, get_achievements, unlock_achievement,
-    get_weekly_report, get_daily_quote, save_user_login
+    get_weekly_report, get_daily_quote, save_user_login,
+    delete_user_data, delete_user_account, delete_user_conversations, get_db
 )
 
 app = Flask(__name__)
@@ -446,6 +447,20 @@ def daily_quote():
     return jsonify(quote)
 
 
+@app.route("/api/user/data", methods=["DELETE"])
+def clear_data():
+    user_id = request.args.get("user_id", "default_user")
+    delete_user_data(user_id)
+    return jsonify({"message": "All mood data has been cleared."})
+
+
+@app.route("/api/user/account", methods=["DELETE"])
+def delete_account():
+    user_id = request.args.get("user_id", "default_user")
+    delete_user_account(user_id)
+    return jsonify({"message": "Account and history deleted successfully."})
+
+
 @app.route("/api/health", methods=["GET"])
 def health():
     return jsonify({
@@ -455,9 +470,62 @@ def health():
     })
 
 
+@app.route("/api/history", methods=["GET"])
+def get_history():
+    user_id = request.args.get("user_id", "default_user")
+    db = get_db()
+    
+    # Fetch from all three collections
+    conversations = list(db.conversations.find({"user_id": user_id}).sort("timestamp", -1))
+    journal = list(db.journal.find({"user_id": user_id}).sort("timestamp", -1))
+    gratitude = list(db.gratitude.find({"user_id": user_id}).sort("timestamp", -1))
+    
+    # Unified list
+    history = []
+    
+    for c in conversations:
+        history.append({
+            "id": str(c["_id"]),
+            "type": "chat",
+            "date": c["timestamp"],
+            "emotion": c.get("emotion"),
+            "severity": c.get("severity"),
+            "last_message": c.get("user_message", ""), # Fix key name
+            "messages_count": 1 # For now
+        })
+        
+    for j in journal:
+        history.append({
+            "id": str(j["_id"]),
+            "type": "journal",
+            "date": j["timestamp"],
+            "mood": j.get("mood"),
+            "title": j.get("title"),
+            "text": j.get("content")
+        })
+        
+    for g in gratitude:
+        history.append({
+            "id": str(g["_id"]),
+            "type": "gratitude",
+            "date": g["timestamp"],
+            "items": g.get("items", [])
+        })
+        
+    # Sort by date descending
+    history.sort(key=lambda x: x["date"], reverse=True)
+    
+    return jsonify({"history": history})
+
+@app.route("/api/user/conversations", methods=["DELETE"])
+def clear_conversations():
+    user_id = request.args.get("user_id", "default_user")
+    delete_user_conversations(user_id)
+    return jsonify({"message": "Chat history has been cleared."})
+
 if __name__ == "__main__":
     init_db()
     print("\n🧠 MindMate Backend running on http://localhost:5000")
     print(f"   AI Mode: {'Gemini API' if gemini_model else 'Demo'}")
     print(f"   Database: MongoDB Atlas\n")
-    app.run(debug=True, port=5000, use_reloader=False)
+    app.run(host='0.0.0.0', debug=True, port=5000, use_reloader=False)

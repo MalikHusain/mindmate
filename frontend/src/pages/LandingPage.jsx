@@ -676,7 +676,7 @@ function Footer() {
         </div>
         <div style={{marginTop:48,paddingTop:24,borderTop:`1px solid ${C.outlineVar}33`,textAlign:'center'}}>
           <p style={{fontFamily:font.body,color:C.outlineVar,fontSize:'.78rem',margin:'0 0 8px 0'}}>
-            © 2024 Tech Titans — Nagpur Institute of Technology
+            © 2026 Tech Titans — Nagpur Institute of Technology
           </p>
           <p style={{fontFamily:font.body,color:C.outlineVar,fontSize:'.7rem',margin:0,opacity:0.6}}>
             Project Lead: Malik Husain | Frontend: Kartik Burde | AI: Dibyanshu Behura

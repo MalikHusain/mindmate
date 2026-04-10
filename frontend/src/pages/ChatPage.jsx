@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Send, Lightbulb, Trash2, Sparkles, Mic, MicOff, Volume2, Loader2 } from 'lucide-react'
+import { Send, Lightbulb, Trash2, Sparkles, Mic, MicOff, Loader2 } from 'lucide-react'
 
 import { sendMessage } from '../api'
 import { EmotionBadge, SeverityMeter } from '../components/EmotionBadge'
@@ -9,17 +9,17 @@ import TypingIndicator from '../components/TypingIndicator'
 
 const WELCOME_MSG = {
   role: 'ai',
-  text: "Hi there! 👋 I'm MindMate, your AI mental health companion. I'm here to listen, support, and help you understand your emotions better.\n\nYou can type or use the 🎤 voice button to talk to me. How are you feeling today?",
+  text: "Hi there! I'm MindMate, your AI mental health companion. I'm here to listen, support, and help you understand your emotions better.\n\nYou can type or use the voice button to talk to me. How are you feeling today?",
   emotion: null,
   severity: null,
 }
 
 const QUICK_PROMPTS = [
-  "I'm feeling stressed today 😓",
-  "I had a really good day! 🌟",
+  "I'm feeling stressed today",
+  "I had a really good day!",
   "I'm feeling anxious about work",
   "I can't sleep well lately",
-  "I'm grateful for my friends 💛",
+  "I'm grateful for my friends",
   "I feel lonely right now",
 ]
 
@@ -39,6 +39,25 @@ export default function ChatPage() {
   const [authError, setAuthError] = useState(null)
 
   useEffect(() => {
+    const loadHistory = async () => {
+      try {
+        const data = await fetch('/api/conversations?user_id=' + (localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')).email : 'default_user')).then(r => r.json())
+        if (data.conversations?.length) {
+          const pastMsgs = []
+          data.conversations.forEach(conv => {
+            conv.messages.forEach(m => pastMsgs.push({ ...m, timestamp: conv.timestamp }))
+          })
+          // Prepend past messages to the welcome message
+          setMessages([WELCOME_MSG, ...pastMsgs])
+        }
+      } catch (err) {
+        console.error("Failed to load chat history", err)
+      }
+    }
+    loadHistory()
+  }, [])
+
+  useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
 
@@ -46,7 +65,6 @@ export default function ChatPage() {
   useEffect(() => {
     const params = new URLSearchParams(location.search)
     const code = params.get('code')
-    
     if (code) {
       handleGithubCallback(code)
     }
@@ -61,23 +79,15 @@ export default function ChatPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code })
       })
-      
       if (!response.ok) throw new Error('GitHub authentication failed')
-      
       const data = await response.json()
-      
-      // Store token and user info
       localStorage.setItem('token', data.token)
       localStorage.setItem('user', JSON.stringify(data.user))
-
-      // Track login in backend
       try {
-        await trackLogin(data.user);
+        await trackLogin(data.user)
       } catch (err) {
-        console.error("Failed to track GitHub login:", err);
+        console.error('Failed to track GitHub login:', err)
       }
-      
-      // Clean up the URL
       navigate('/chat', { replace: true })
     } catch (err) {
       console.error('GitHub Auth Error:', err)
@@ -86,7 +96,6 @@ export default function ChatPage() {
       setAuthLoading(false)
     }
   }
-
 
   // Voice Recognition Setup
   useEffect(() => {
@@ -139,11 +148,18 @@ export default function ChatPage() {
     setShowPrompts(false)
 
     try {
-      const userStr = localStorage.getItem('user');
-      const user = userStr ? JSON.parse(userStr) : null;
-      const userId = user?.email || "default_user";
+      const userStr = localStorage.getItem('user')
+      const user = userStr ? JSON.parse(userStr) : null
+      const userId = user?.email || 'default_user'
 
       const data = await sendMessage(msg, userId)
+
+      try {
+        const channel = new BroadcastChannel('mindmate_data_updates')
+        channel.postMessage('mindmate_data_sync')
+        channel.close()
+      } catch (e) {}
+
       setMessages(prev => [
         ...prev,
         {
@@ -179,6 +195,7 @@ export default function ChatPage() {
     }
   }
 
+  // Clears messages from local React state only — does not delete from database
   const clearChat = () => {
     setMessages([WELCOME_MSG])
     setShowPrompts(true)
@@ -201,25 +218,28 @@ export default function ChatPage() {
       {authError && (
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 animate-bounce">
           <div className="bg-red-500 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3">
-            <span>⚠️</span>
+            <span>Warning:</span>
             <span className="font-bold text-sm">{authError}</span>
-            <button onClick={() => setAuthError(null)} className="ml-2 hover:opacity-75">✕</button>
+            <button onClick={() => setAuthError(null)} className="ml-2 hover:opacity-75">x</button>
           </div>
         </div>
       )}
 
       {/* Header */}
-
       <div className="page-header flex items-center justify-between flex-shrink-0">
         <div>
           <h1 className="font-display gradient-text">Chat with MindMate</h1>
-          <p>Your safe space to express yourself ✨</p>
+          <p>Your safe space to express yourself</p>
         </div>
-        {messages.length > 1 && (
-          <button onClick={clearChat} className="p-2 rounded-lg transition-all hover:bg-white/5" style={{ color: 'var(--text-muted)' }} title="Clear chat">
-            <Trash2 className="w-4 h-4" />
-          </button>
-        )}
+        {/* Clear Chat History — always visible so users can reset anytime */}
+        <button
+          onClick={clearChat}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all hover:bg-white/5"
+          style={{ color: 'var(--text-muted)', border: '1px solid var(--border-subtle)' }}
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+          Clear Chat History
+        </button>
       </div>
 
       {/* Messages */}
@@ -263,7 +283,7 @@ export default function ChatPage() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={isListening ? "🎤 Listening..." : "Tell me how you're feeling..."}
+            placeholder={isListening ? 'Listening...' : "Tell me how you're feeling..."}
             rows={1}
             className="chat-textarea"
             disabled={loading}
@@ -287,7 +307,7 @@ export default function ChatPage() {
         </div>
         {isListening && (
           <p className="text-center text-xs mt-2 animate-fade-in" style={{ color: 'var(--negative)' }}>
-            🔴 Listening... Speak now. Click mic to stop.
+            Listening... Speak now. Click mic to stop.
           </p>
         )}
         <p className="text-center text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
@@ -306,7 +326,7 @@ function MessageBubble({ message, index }) {
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} ${animClass}`} style={{ animationDelay: `${index * 0.03}s` }}>
       <div className={`msg-row ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
         {!isUser && (
-          <div className="msg-avatar">🧠</div>
+          <div className="msg-avatar">M</div>
         )}
         <div className="msg-content">
           <div className={`msg-bubble ${isUser ? 'msg-user' : 'msg-ai'}`}>

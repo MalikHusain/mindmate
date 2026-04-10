@@ -1,16 +1,19 @@
 const API_BASE = '/api'
 
+
+
+
+
+
+
 const getUserId = () => {
   try {
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      const user = JSON.parse(userStr);
-      return user.email || "default_user";
-    }
-  } catch (e) {
-    console.error("Error parsing user from localStorage", e);
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const id = user.email || 'default_user';
+    return id;
+  } catch {
+    return 'default_user';
   }
-  return "default_user";
 };
 
 export async function trackLogin(userData) {
@@ -128,5 +131,35 @@ export async function unlockAchievement(badge_id, userId = getUserId()) {
 export async function getWeeklyReport(userId = getUserId()) {
   const res = await fetch(`${API_BASE}/weekly-report?user_id=${userId}`)
   if (!res.ok) throw new Error('Failed to fetch report')
+  return res.json()
+}
+
+export async function clearData(userId = getUserId()) {
+  const res = await fetch(`${API_BASE}/user/data?user_id=${userId}`, {
+    method: 'DELETE',
+  })
+  if (!res.ok) throw new Error('Failed to clear data')
+  return res.json()
+}
+
+export async function deleteAccount(userId = getUserId()) {
+  const res = await fetch(`${API_BASE}/user/account?user_id=${userId}`, {
+    method: 'DELETE',
+  })
+  if (!res.ok) throw new Error('Failed to delete account')
+  return res.json()
+}
+
+export async function getHistory(userId = getUserId()) {
+  const res = await fetch(`${API_BASE}/history?user_id=${userId}`)
+  if (!res.ok) throw new Error('Failed to fetch history')
+  return res.json()
+}
+
+export async function resetChats(userId = getUserId()) {
+  const res = await fetch(`${API_BASE}/user/conversations?user_id=${userId}`, {
+    method: 'DELETE',
+  })
+  if (!res.ok) throw new Error('Failed to reset chats')
   return res.json()
 }

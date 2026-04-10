@@ -1,6 +1,6 @@
 import os
 import certifi
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from bson import ObjectId
 from dotenv import load_dotenv
 load_dotenv()
@@ -81,7 +81,7 @@ def save_user_login(user_info):
         "email": user_id,
         "picture": user_info.get("picture"),
         "provider": user_info.get("provider", "email"),
-        "last_login": datetime.utcnow().isoformat()
+        "last_login": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     }
     # Update user or insert if doesn't exist
     db.users.update_one(
@@ -93,7 +93,7 @@ def save_user_login(user_info):
     # Also log the login event
     db.login_logs.insert_one({
         "user_id": user_id,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "provider": user_info.get("provider")
     })
     return user_id
@@ -112,7 +112,7 @@ def save_conversation(user_message, ai_response, emotion, severity, recommendati
         "emotion": emotion,
         "severity": int(severity),
         "recommendation": recommendation or "",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
     }
     result = db.conversations.insert_one(doc)
     doc_count = db.conversations.count_documents({})
@@ -124,7 +124,7 @@ def save_conversation(user_message, ai_response, emotion, severity, recommendati
 
 def get_recent_moods(days=7, user_id="default_user"):
     db = get_db()
-    since = (datetime.utcnow() - timedelta(days=days)).isoformat()
+    since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat().replace("+00:00", "Z")
     cursor = db.conversations.find(
         {"user_id": user_id, "timestamp": {"$gte": since}},
         {"user_message": 1, "emotion": 1, "severity": 1, "timestamp": 1}
@@ -158,7 +158,7 @@ def save_journal_entry(title, content, mood="Neutral", user_id="default_user"):
         "title": title,
         "content": content,
         "mood": mood,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
     }
     result = db.journal.insert_one(doc)
     _check_achievements(db, user_id)
@@ -181,8 +181,8 @@ def save_gratitude_entry(items, user_id="default_user"):
     doc = {
         "user_id": user_id,
         "items": items,  # list of strings
-        "timestamp": datetime.utcnow().isoformat(),
-        "date": datetime.utcnow().strftime("%Y-%m-%d"),
+        "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
     }
     result = db.gratitude.insert_one(doc)
     _check_achievements(db, user_id)
@@ -201,7 +201,7 @@ def get_gratitude_entries(user_id="default_user", limit=30):
 
 def get_mood_calendar(user_id="default_user", days=30):
     db = get_db()
-    since = (datetime.utcnow() - timedelta(days=days)).isoformat()
+    since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat().replace("+00:00", "Z")
     convos = list(db.conversations.find(
         {"user_id": user_id, "timestamp": {"$gte": since}},
         {"timestamp": 1, "emotion": 1}
@@ -242,7 +242,7 @@ def get_mood_streaks(user_id="default_user"):
 
     current_streak = 0
     for i, d in enumerate(dates):
-        expected = (datetime.utcnow() - timedelta(days=i)).strftime("%Y-%m-%d")
+        expected = (datetime.now(timezone.utc) - timedelta(days=i)).strftime("%Y-%m-%d")
         if d == expected:
             current_streak += 1
         else:
@@ -273,7 +273,7 @@ def get_user_stats(user_id="default_user"):
             "current_streak": 0,
             "longest_streak": 0,
             "last_active": None,
-            "created_at": datetime.utcnow().isoformat()
+            "created_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
         }
         db.user_stats.insert_one(stats)
         stats = db.user_stats.find_one({"user_id": user_id})
@@ -298,7 +298,7 @@ def update_user_stats(user_id="default_user"):
             "total_gratitude": gratitude_count,
             "current_streak": streaks["current_streak"],
             "longest_streak": max(streaks["current_streak"], streaks.get("longest_streak", 0)),
-            "last_active": datetime.utcnow().isoformat()
+            "last_active": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
         }},
         upsert=True
     )
@@ -348,7 +348,7 @@ def _check_achievements(db, user_id="default_user"):
                 db.achievements.insert_one({
                     "badge_id": badge_id,
                     "user_id": user_id,
-                    "unlocked_at": datetime.utcnow().isoformat(),
+                    "unlocked_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
                 })
 
 
@@ -360,7 +360,7 @@ def unlock_achievement(badge_id, user_id="default_user"):
         db.achievements.insert_one({
             "badge_id": badge_id,
             "user_id": user_id,
-            "unlocked_at": datetime.utcnow().isoformat(),
+            "unlocked_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         })
 
 
@@ -387,7 +387,7 @@ def get_achievements(user_id="default_user"):
 
 def get_weekly_report(user_id="default_user"):
     db = get_db()
-    since = (datetime.utcnow() - timedelta(days=7)).isoformat()
+    since = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat().replace("+00:00", "Z")
     week_convos = list(db.conversations.find({"user_id": user_id, "timestamp": {"$gte": since}}))
 
     if not week_convos:
@@ -481,6 +481,50 @@ QUOTES = [
 
 def get_daily_quote():
     """Return a different quote each day based on date."""
-    day_of_year = datetime.utcnow().timetuple().tm_yday
+    day_of_year = datetime.now(timezone.utc).timetuple().tm_yday
     index = day_of_year % len(QUOTES)
     return QUOTES[index]
+
+
+def delete_user_data(user_id):
+    """Delete all user history and reset stats for the user."""
+    db = get_db()
+    print(f"🧹 [DATABASE] Clearing all data for user: {user_id}")
+    res1 = db.conversations.delete_many({"user_id": user_id})
+    res2 = db.journal.delete_many({"user_id": user_id})
+    res3 = db.gratitude.delete_many({"user_id": user_id})
+    res4 = db.achievements.delete_many({"user_id": user_id})
+    res5 = db.user_stats.delete_many({"user_id": user_id})
+    
+    deleted_total = (res1.deleted_count + res2.deleted_count + 
+                     res3.deleted_count + res4.deleted_count + 
+                     res5.deleted_count)
+    
+    print(f"✅ [DATABASE] Deleted {deleted_total} records for {user_id}")
+    return True
+
+
+def delete_user_account(user_id):
+    """Delete user record and all history from MongoDB."""
+    db = get_db()
+    db.users.delete_one({"email": user_id})
+    db.conversations.delete_many({"user_id": user_id})
+    db.journal.delete_many({"user_id": user_id})
+    db.gratitude.delete_many({"user_id": user_id})
+    db.achievements.delete_many({"user_id": user_id})
+    db.user_stats.delete_many({"user_id": user_id})
+    db.login_logs.delete_many({"user_id": user_id})
+    print(f"🚫 [DATABASE] Account and history deleted for user: {user_id}")
+    return True
+
+def delete_user_conversations(user_id):
+    """Delete only chat conversations for the user."""
+    db = get_db()
+    res = db.conversations.delete_many({"user_id": user_id})
+    # Reset stats that depend on conversations
+    db.user_stats.update_one(
+        {"user_id": user_id},
+        {"$set": {"total_conversations": 0, "current_streak": 0}}
+    )
+    print(f"💬 [DATABASE] Deleted {res.deleted_count} chats for {user_id}")
+    return True

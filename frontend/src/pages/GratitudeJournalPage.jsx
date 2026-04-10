@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
-import { BookOpen, Plus, Trash2, Heart, Sparkles, ChevronDown, ChevronUp } from 'lucide-react'
+import { BookOpen, Plus, Trash2, Heart, Sparkles, ChevronDown, ChevronUp, Download, MessageSquare, List } from 'lucide-react'
+import { saveJournalEntry, getHistory } from '../api'
+
 
 const PROMPTS = [
   'What made you smile today?',
@@ -29,33 +31,83 @@ export default function GratitudeJournalPage() {
   const [expandedId, setExpandedId] = useState(null)
   const [saved, setSaved] = useState(false)
 
-  // Load from localStorage
-  useEffect(() => {
-    try {
-      const stored = JSON.parse(localStorage.getItem('mindmate_journal') || '[]')
-      setEntries(stored)
-    } catch { setEntries([]) }
-    setPromptIdx(Math.floor(Math.random() * PROMPTS.length))
-  }, [])
+  const [history, setHistory] = useState([])
+  const [loading, setLoading] = useState(true)
 
-  const saveEntries = (updated) => {
-    setEntries(updated)
-    try { localStorage.setItem('mindmate_journal', JSON.stringify(updated)) } catch {}
+  const fetchHistory = async () => {
+    try {
+      const data = await getHistory()
+      setHistory(data.history || [])
+    } catch (err) {
+      console.error("Failed to load history", err)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const handleAdd = () => {
+  useEffect(() => {
+    fetchHistory()
+    setPromptIdx(Math.floor(Math.random() * PROMPTS.length))
+    
+    // Sync with other pages
+    try {
+      const channel = new BroadcastChannel('mindmate_data_updates')
+      channel.onmessage = (event) => {
+        if (event.data === 'mindmate_data_sync') setTimeout(() => fetchHistory(), 500)
+      }
+      return () => channel.close()
+    } catch (e) {}
+  }, [])
+
+  const handleAdd = async () => {
     if (!text.trim()) return
-    const entry = {
-      id: Date.now(),
-      text: text.trim(),
-      mood: mood || null,
-      date: new Date().toISOString(),
+    try {
+      await saveJournalEntry("Reflection", text.trim(), mood)
+      setText('')
+      setMood(null)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+      fetchHistory() // Refresh list
+    } catch (err) {
+      alert("Failed to save entry: " + err.message)
     }
-    saveEntries([entry, ...entries])
-    setText('')
-    setMood(null)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+  }
+
+  const handleExport = (format) => {
+    if (!history.length) return
+    
+    let content = ''
+    let mimeType = ''
+    let filename = `mindmate_history_${new Date().toISOString().split('T')[0]}`
+
+    if (format === 'json') {
+      content = JSON.stringify(history, null, 2)
+      mimeType = 'application/json'
+      filename += '.json'
+    } else {
+      // CSV
+      const headers = ['Date', 'Type', 'Mood/Emotion', 'Content/Message']
+      const rows = history.map(item => {
+        const d = new Date(item.date && !item.date.endsWith('Z') ? item.date + 'Z' : item.date)
+        const date = d.toLocaleString()
+        const type = item.type
+        const mood = item.mood || item.emotion || '—'
+        const text = (item.text || item.last_message || (item.items ? item.items.join('; ') : '')).replace(/"/g, '""')
+        return `"${date}","${type}","${mood}","${text}"`
+      })
+      content = [headers.join(','), ...rows].join('\n')
+      mimeType = 'text/csv'
+      filename += '.csv'
+    }
+
+    const blob = new Blob([content], { type: mimeType })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
   }
 
   const handleDelete = (id) => {
@@ -65,13 +117,17 @@ export default function GratitudeJournalPage() {
   const newPrompt = () => setPromptIdx((i) => (i + 1) % PROMPTS.length)
 
   const formatDate = (iso) => {
-    const d = new Date(iso)
+    if (!iso) return '—'
+    const d = new Date(iso.endsWith('Z') ? iso : iso + 'Z')
     return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
   }
 
   const streak = (() => {
     if (!entries.length) return 0
-    const days = [...new Set(entries.map(e => new Date(e.date).toDateString()))]
+    const days = [...new Set(entries.map(e => {
+      const dt = e.date ? (e.date.endsWith('Z') ? e.date : e.date + 'Z') : new Date().toISOString();
+      return new Date(dt).toDateString()
+    }))]
     let count = 0
     const today = new Date()
     for (let i = 0; i < 365; i++) {
@@ -87,24 +143,39 @@ export default function GratitudeJournalPage() {
     <div className="space-y-6 page-enter" style={{ width: '100%', overflowX: 'hidden' }}>
 
       {/* Header */}
-      <div style={{ textAlign: 'center', width: '100%' }}>
-        <h1 className="font-display gradient-text text-2xl sm:text-3xl mb-1">Gratitude Journal</h1>
-        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Build positivity one entry at a time</p>
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div style={{ textAlign: 'left' }}>
+          <h1 className="font-display gradient-text text-2xl sm:text-3xl mb-1">Gratitude & History</h1>
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Everything you've shared with MindMate</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={() => handleExport('csv')} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 hover:bg-white/10 transition-all" style={{ border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}>
+            <Download className="w-3.5 h-3.5" /> Export CSV
+          </button>
+          <button onClick={() => handleExport('json')} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 hover:bg-white/10 transition-all" style={{ border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}>
+            <Download className="w-3.5 h-3.5" /> Export JSON
+          </button>
+        </div>
       </div>
 
       {/* Stats row */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { label: 'Total Entries', value: entries.length, color: 'var(--accent-primary)' },
-          { label: 'Day Streak', value: `${streak}🔥`, color: 'var(--neutral)' },
-          { label: 'This Week', value: entries.filter(e => (Date.now() - new Date(e.date)) < 7 * 86400000).length, color: 'var(--positive)' },
+          { label: 'Total Memories', value: history.length, color: 'var(--accent-primary)', icon: <List className="w-4 h-4" /> },
+          { label: 'Conversations', value: history.filter(h => h.type === 'chat').length, color: 'var(--accent-secondary)', icon: <MessageSquare className="w-4 h-4" /> },
+          { label: 'Day Streak', value: `${streak}🔥`, color: 'var(--neutral)', icon: <Sparkles className="w-4 h-4" /> },
         ].map((s, i) => (
           <div key={i} className="glass-card-static p-3 sm:p-4" style={{ textAlign: 'center' }}>
-            <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>{s.label}</p>
+            <div className="flex items-center justify-center gap-2 mb-1" style={{ color: 'var(--text-muted)' }}>
+              {s.icon}
+              <span className="text-[10px] uppercase font-bold tracking-wider">{s.label}</span>
+            </div>
             <p className="text-lg sm:text-xl font-bold font-display" style={{ color: s.color }}>{s.value}</p>
           </div>
         ))}
       </div>
+
+      {/* Writing card (existing) ... */}
 
       {/* Writing card */}
       <div className="glass-card-static p-5 sm:p-6 space-y-4">
@@ -189,58 +260,56 @@ export default function GratitudeJournalPage() {
       </div>
 
       {/* Entries list */}
-      {entries.length > 0 ? (
-        <div className="space-y-3">
+      {history.length > 0 ? (
+        <div className="space-y-4">
           <h2 className="text-sm font-semibold px-1" style={{ color: 'var(--text-secondary)' }}>
             <BookOpen className="w-4 h-4 inline mr-1.5" />
-            Past Entries ({entries.length})
+            Your MindMate History ({history.length})
           </h2>
-          {entries.map((entry) => {
+          {history.map((entry) => {
             const isOpen = expandedId === entry.id
             const moodObj = MOODS.find(m => m.value === entry.mood)
+            
             return (
-              <div
-                key={entry.id}
-                className="glass-card-static rounded-xl overflow-hidden"
-                style={{ width: '100%' }}
-              >
-                {/* Entry header */}
-                <div
-                  className="flex items-center justify-between gap-3 p-4 cursor-pointer"
-                  onClick={() => setExpandedId(isOpen ? null : entry.id)}
-                  style={{ minWidth: 0 }}
-                >
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                      {moodObj && <span className="text-sm">{moodObj.emoji}</span>}
-                      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{formatDate(entry.date)}</span>
+              <div key={entry.id} className="glass-card-static rounded-xl overflow-hidden transition-all hover:border-white/10" style={{ width: '100%', borderLeft: entry.type === 'chat' ? '3px solid var(--accent-secondary)' : entry.type === 'gratitude' ? '3px solid var(--positive)' : '3px solid var(--accent-primary)' }}>
+                <div className="p-4 cursor-pointer" onClick={() => setExpandedId(isOpen ? null : entry.id)}>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-width-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        {entry.type === 'chat' ? <MessageSquare className="w-3.5 h-3.5" style={{ color: 'var(--accent-secondary)' }} /> : <BookOpen className="w-3.5 h-3.5" style={{ color: 'var(--accent-primary)' }} />}
+                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/5" style={{ color: 'var(--text-muted)' }}>{entry.type}</span>
+                        <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{formatDate(entry.date)}</span>
+                        {(entry.mood || entry.emotion) && <span className="text-xs ml-1">{moodObj?.emoji || (entry.emotion === 'Positive' ? '😊' : entry.emotion === 'Negative' ? '😔' : '😐')}</span>}
+                      </div>
+                      
+                      {entry.type === 'chat' ? (
+                        <p className="text-sm italic" style={{ color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: isOpen ? 'normal' : 'nowrap' }}>
+                          Chat: "{entry.last_message}"
+                        </p>
+                      ) : entry.type === 'gratitude' ? (
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          {entry.items?.map((it, idx) => (
+                            <span key={idx} className="text-xs px-2 py-1 rounded-lg bg-white/5" style={{ color: 'var(--text-primary)' }}>✨ {it}</span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm" style={{ color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: isOpen ? 'normal' : 'nowrap', wordBreak: 'break-word' }}>
+                          {entry.text}
+                        </p>
+                      )}
                     </div>
-                    <p
-                      className="text-sm"
-                      style={{
-                        color: 'var(--text-primary)',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: isOpen ? 'normal' : 'nowrap',
-                        wordBreak: 'break-word',
-                      }}
-                    >
-                      {entry.text}
-                    </p>
+                    <div className="flex-shrink-0 pt-1">
+                      {isOpen ? <ChevronUp className="w-4 h-4 text-muted" /> : <ChevronDown className="w-4 h-4 text-muted" />}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleDelete(entry.id) }}
-                      className="w-7 h-7 rounded-lg flex items-center justify-center transition-all hover:scale-110"
-                      style={{ background: 'rgba(239,68,68,0.1)', color: 'var(--negative)' }}
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                    {isOpen
-                      ? <ChevronUp className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
-                      : <ChevronDown className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
-                    }
-                  </div>
+                  
+                  {isOpen && entry.type === 'chat' && (
+                    <div className="mt-4 pt-4 border-t border-white/5 space-y-2">
+                      <div className="p-3 rounded-xl bg-white/5 text-xs text-secondary leading-relaxed">
+                        This was a chat with {entry.messages_count} messages. Open the Chat page to start a new one.
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )
@@ -249,7 +318,7 @@ export default function GratitudeJournalPage() {
       ) : (
         <div className="glass-card-static p-10" style={{ textAlign: 'center' }}>
           <p className="text-3xl mb-2">📓</p>
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No entries yet — write your first gratitude note above!</p>
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No memories yet — start chatting or writing above!</p>
         </div>
       )}
     </div>
