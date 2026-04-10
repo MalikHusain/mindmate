@@ -393,13 +393,17 @@ export default function RegisterPage() {
     setLoading(true);
     // Simulate API call
     await new Promise((r) => setTimeout(r, 1800));
+    // Store user info
+    const user = {
+      name: name,
+      email: email,
+      provider: 'email'
+    };
+    localStorage.setItem('user', JSON.stringify(user));
+
     // Track registration (login) in backend
     try {
-      await trackLogin({
-        email: email,
-        name: name,
-        provider: 'email'
-      });
+      await trackLogin(user);
     } catch (err) {
       console.error("Failed to track registration:", err);
     }

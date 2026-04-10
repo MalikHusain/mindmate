@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell
@@ -17,41 +17,43 @@ function useNow() {
   return now
 }
 
-// Returns a label like "Apr 6 – Apr 12" for the current week (Mon–Sun)
 function getWeekRangeLabel() {
   const today = new Date()
-  const dayOfWeek = today.getDay() // 0 = Sun, 1 = Mon ...
-  // Shift so week starts Monday
+  const dayOfWeek = today.getDay()
   const diffToMonday = (dayOfWeek === 0 ? -6 : 1 - dayOfWeek)
   const monday = new Date(today)
   monday.setDate(today.getDate() + diffToMonday)
   const sunday = new Date(monday)
   sunday.setDate(monday.getDate() + 6)
-
   const fmt = (d) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
   return `${fmt(monday)} – ${fmt(sunday)}`
 }
 
 export default function DashboardPage() {
-  const [moodData, setMoodData] = useState(null)
-  const [streakData, setStreakData] = useState(null)
+  const [moodData,     setMoodData]     = useState(null)
+  const [streakData,   setStreakData]   = useState(null)
   const [calendarData, setCalendarData] = useState(null)
   const [achievements, setAchievements] = useState([])
   const [weeklyReport, setWeeklyReport] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [days, setDays] = useState(7)
-  const [lastUpdated, setLastUpdated] = useState(null)
-  const [pulse, setPulse] = useState(false)
-  const now = useNow()
+  const [loading,      setLoading]      = useState(true)
+  const [error,        setError]        = useState(null)
+  const [days,         setDays]         = useState(7)
+  const [lastUpdated,  setLastUpdated]  = useState(null)
+  const [pulse,        setPulse]        = useState(false)
 
+  // ── NEW: real-time "just synced" flash ──
+  const [syncFlash,    setSyncFlash]    = useState(false)
+  const pollRef = useRef(null)
+  const now = useNow()
   const weekRangeLabel = getWeekRangeLabel()
 
   const fetchAll = useCallback(async (showLoading = false) => {
     try {
       if (showLoading) setLoading(true)
       const [mood, streak, cal, badges, report] = await Promise.all([
-        getMoodData(days), getStreaks(), getCalendarData(30),
+        getMoodData(days),
+        getStreaks(),
+        getCalendarData(30),
         getAchievements().catch(() => ({ achievements: [] })),
         getWeeklyReport().catch(() => null),
       ])
@@ -74,30 +76,41 @@ export default function DashboardPage() {
   // Initial load + re-fetch when day range changes
   useEffect(() => { fetchAll(true) }, [fetchAll])
 
-  // Polling every 5 seconds as fallback
+  // ── UPDATED: faster polling — every 2s ──
   useEffect(() => {
-    const interval = setInterval(() => fetchAll(false), 5000)
-    return () => clearInterval(interval)
+    pollRef.current = setInterval(() => fetchAll(false), 2000)
+    return () => clearInterval(pollRef.current)
   }, [fetchAll])
 
-  // Instant re-fetch when a new chat message is sent (via BroadcastChannel or Storage)
+  // ── UPDATED: BroadcastChannel — instant re-fetch on chat message ──
   useEffect(() => {
     let channel
+    const doSync = () => {
+      // Flash the "New data" indicator
+      setSyncFlash(true)
+      setTimeout(() => setSyncFlash(false), 1800)
+
+      // Clear stale data immediately so chart updates feel snappy
+      setMoodData(null)
+      setWeeklyReport(null)
+      setStreakData(null)
+      setCalendarData([])
+      setAchievements([])
+
+      // Fetch fresh data after a short delay (let backend finish writing)
+      setTimeout(() => fetchAll(false), 600)
+    }
+
     try {
       channel = new BroadcastChannel('mindmate_data_updates')
       channel.onmessage = (event) => {
-        if (event.data === 'mindmate_data_sync') {
-          setMoodData(null); setWeeklyReport(null); setStreakData(null); setCalendarData([]); setAchievements([]);
-          setTimeout(() => fetchAll(false), 800)
-        }
+        if (event.data === 'mindmate_data_sync') doSync()
       }
-    } catch (e) {}
+    } catch {}
 
+    // localStorage fallback (same tab or older browsers)
     const handleStorage = (e) => {
-      if (e.key === 'mindmate_last_sync') {
-        setMoodData(null); setWeeklyReport(null); setStreakData(null); setCalendarData([]); setAchievements([]);
-        setTimeout(() => fetchAll(false), 800)
-      }
+      if (e.key === 'mindmate_last_sync') doSync()
     }
     window.addEventListener('storage', handleStorage)
 
@@ -107,6 +120,7 @@ export default function DashboardPage() {
     }
   }, [fetchAll])
 
+  // ─────────────────────────────────────────
   if (loading) {
     return (
       <div style={s.center}>
@@ -131,30 +145,32 @@ export default function DashboardPage() {
 
   const formatTimestamp = (ts) => {
     if (!ts) return new Date()
-    // Append 'Z' if missing to ensure it's treated as UTC
     return new Date(ts.endsWith('Z') ? ts : ts + 'Z')
   }
 
   const chartData = (moodData?.moods || []).map((m) => {
     const d = formatTimestamp(m.timestamp)
     return {
-      date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      time: d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-      score: m.score, emotion: m.emotion, severity: m.severity,
+      date:     d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      time:     d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      score:    m.score,
+      emotion:  m.emotion,
+      severity: m.severity,
     }
   })
 
+  // Live trailing point — always appended at the current second
   const livePoint = chartData.length > 0 ? {
-    date: now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-    time: now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-    score: chartData[chartData.length - 1].score,
-    emotion: chartData[chartData.length - 1].emotion,
+    date:     now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    time:     now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+    score:    chartData[chartData.length - 1].score,
+    emotion:  chartData[chartData.length - 1].emotion,
     severity: chartData[chartData.length - 1].severity,
-    isLive: true,
+    isLive:   true,
   } : null
   const chartDataWithLive = livePoint ? [...chartData, livePoint] : chartData
 
-  const dist = moodData?.distribution || {}
+  const dist   = moodData?.distribution || {}
   const pieData = [
     { name: 'Positive', value: dist.Positive || 0 },
     { name: 'Neutral',  value: dist.Neutral  || 0 },
@@ -163,7 +179,7 @@ export default function DashboardPage() {
 
   const moodLabel = (v) =>
     v >= 2.5 ? { t: 'Good', c: 'var(--positive)' }
-    : v >= 1.5 ? { t: 'Okay', c: 'var(--neutral)' }
+    : v >= 1.5 ? { t: 'Okay', c: 'var(--neutral)'  }
     : { t: 'Low',  c: 'var(--negative)' }
   const avgL = moodLabel(moodData?.average || 0)
 
@@ -177,11 +193,22 @@ export default function DashboardPage() {
     calDays.push({ date: key, day: d.getDate(), level: entry ? Math.round(entry.avg_score) : 0, count: entry?.count || 0 })
   }
 
-  const unlockedCount = achievements.filter(a => a.unlocked).length
+  const unlockedCount  = achievements.filter(a => a.unlocked).length
   const timeSinceUpdate = lastUpdated ? Math.floor((now - lastUpdated) / 1000) : null
 
   return (
     <div style={s.page}>
+
+      {/* ── NEW: Real-time sync flash banner ── */}
+      <div style={{
+        ...s.syncBanner,
+        opacity:    syncFlash ? 1 : 0,
+        transform:  syncFlash ? 'translateY(0)' : 'translateY(-8px)',
+        pointerEvents: 'none',
+      }}>
+        <Radio size={11} color="#22c55e" />
+        <span>New mood data received — chart updated</span>
+      </div>
 
       {/* Header */}
       <div style={s.header}>
@@ -209,13 +236,13 @@ export default function DashboardPage() {
 
       {/* Stat Cards */}
       <div style={s.statsGrid}>
-        <StatCard icon={<Activity size={20} />} label="Average Mood"  value={moodData?.average?.toFixed(1) || '—'} sub={avgL.t} color={avgL.c} />
-        <StatCard icon={<TrendingUp size={20} />} label="Trend"        value={moodData?.trend || '—'} sub={`Last ${days} days`} color="var(--accent-primary)" small />
-        <StatCard icon={<Calendar size={20} />} label="Entries"       value={moodData?.total_entries || 0} sub="This period" color="var(--accent-secondary)" />
-        <StatCard icon={<Flame size={20} />}    label="Streak"        value={`${streakData?.current_streak || 0}d`} sub={`${streakData?.total_days || 0} total`} color="var(--neutral)" />
+        <StatCard icon={<Activity   size={20} />} label="Average Mood" value={moodData?.average?.toFixed(1) || '—'} sub={avgL.t}              color={avgL.c} />
+        <StatCard icon={<TrendingUp size={20} />} label="Trend"        value={moodData?.trend || '—'}               sub={`Last ${days} days`}  color="var(--accent-primary)" small />
+        <StatCard icon={<Calendar   size={20} />} label="Entries"      value={moodData?.total_entries || 0}          sub="This period"          color="var(--accent-secondary)" />
+        <StatCard icon={<Flame      size={20} />} label="Streak"       value={`${streakData?.current_streak || 0}d`} sub={`${streakData?.total_days || 0} total`} color="var(--neutral)" />
       </div>
 
-      {/* Weekly Mood Score with dynamic date range */}
+      {/* Weekly Mood Score */}
       <div style={s.weekRangeBanner}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
           <Calendar size={13} color="var(--accent-primary)" />
@@ -271,11 +298,12 @@ export default function DashboardPage() {
         <div style={{ ...s.card, flex: 2, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <p style={s.cardLabel}>Mood Over Time</p>
+            {/* ── NEW: live indicator shows "Syncing…" during fresh fetch ── */}
             <div style={s.liveChip}>
               <Radio size={10} color="#22c55e" />
               <span style={{ fontSize: 10, color: '#22c55e', fontWeight: 700, letterSpacing: '0.06em' }}>LIVE</span>
               <span style={{ fontSize: 10, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>
-                {now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                {syncFlash ? 'Syncing…' : now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
               </span>
             </div>
           </div>
@@ -295,14 +323,17 @@ export default function DashboardPage() {
                     tickFormatter={v => v === 3 ? 'Good' : v === 2 ? 'Okay' : v === 1 ? 'Low' : ''}
                     tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
                   <Tooltip content={<ChartTooltip />} />
-                  <Area type="monotone" dataKey="score" stroke="var(--accent-primary)"
-                    strokeWidth={2.5} fill="url(#moodGrad)"
+                  <Area
+                    type="monotone" dataKey="score"
+                    stroke="var(--accent-primary)" strokeWidth={2.5}
+                    fill="url(#moodGrad)"
                     dot={({ cx, cy, index }) =>
                       index === chartDataWithLive.length - 1
                         ? <LiveDot key={`live-${cx}-${cy}`} cx={cx} cy={cy} />
                         : <circle key={`dot-${index}`} cx={cx} cy={cy} r={3.5} fill="var(--accent-primary)" stroke="none" />
                     }
                     activeDot={{ r: 5 }}
+                    isAnimationActive={syncFlash}    /* animate only on new data, not every second */
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -404,12 +435,14 @@ export default function DashboardPage() {
   )
 }
 
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
 function LiveDot({ cx, cy }) {
   return (
     <g>
       <circle cx={cx} cy={cy} r={8} fill="var(--accent-primary)" opacity={0.18}>
-        <animate attributeName="r"       from="5"   to="13"  dur="1.5s" repeatCount="indefinite" />
-        <animate attributeName="opacity" from="0.3" to="0"   dur="1.5s" repeatCount="indefinite" />
+        <animate attributeName="r"       from="5"  to="13" dur="1.5s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="0.3" to="0" dur="1.5s" repeatCount="indefinite" />
       </circle>
       <circle cx={cx} cy={cy} r={4.5} fill="var(--accent-primary)" />
     </g>
@@ -430,7 +463,7 @@ function StatCard({ icon, label, value, sub, color, small }) {
 function EmptyState() {
   return (
     <div style={{ textAlign: 'center', padding: '36px 0' }}>
-      <p style={{ fontSize: 28, marginBottom: 8 }}>No data yet</p>
+      <p style={{ fontSize: 28, marginBottom: 8 }}>💬</p>
       <p style={{ color: 'var(--text-muted)', fontSize: 12 }}>Start chatting to see data here!</p>
     </div>
   )
@@ -438,9 +471,9 @@ function EmptyState() {
 
 function ChartTooltip({ active, payload }) {
   if (!active || !payload?.length) return null
-  const d = payload[0].payload
+  const d  = payload[0].payload
   const ec = d.emotion === 'Positive' ? 'var(--positive)'
-    : d.emotion === 'Negative' ? 'var(--negative)' : 'var(--neutral)'
+           : d.emotion === 'Negative' ? 'var(--negative)' : 'var(--neutral)'
   return (
     <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)',
       borderRadius: 10, padding: '8px 13px' }}>
@@ -457,55 +490,68 @@ function ChartTooltip({ active, payload }) {
   )
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
 const s = {
-  page: { display: 'flex', flexDirection: 'column', gap: 14, padding: '18px 20px', maxWidth: 1100, margin: '0 auto' },
-  header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 },
-  title: { fontSize: 23, fontWeight: 700, margin: '0 0 2px',
-    background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))',
-    WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontFamily: 'var(--font-display, inherit)' },
-  subtitle: { fontSize: 12, color: 'var(--text-muted)', margin: 0 },
-  select: { background: 'transparent', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', borderRadius: 9, padding: '6px 11px', fontSize: 12, outline: 'none', cursor: 'pointer' },
+  page:      { display: 'flex', flexDirection: 'column', gap: 14, padding: '18px 20px', maxWidth: 1100, margin: '0 auto' },
+  header:    { display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 },
+  title:     { fontSize: 23, fontWeight: 700, margin: '0 0 2px',
+               background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))',
+               WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' },
+  subtitle:  { fontSize: 12, color: 'var(--text-muted)', margin: 0 },
+  select:    { background: 'transparent', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', borderRadius: 9, padding: '6px 11px', fontSize: 12, outline: 'none', cursor: 'pointer' },
 
-  clockBadge: { display: 'flex', alignItems: 'center', gap: 6, padding: '5px 11px', borderRadius: 9, background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)' },
-  liveDot: { width: 7, height: 7, borderRadius: '50%', transition: 'background 0.3s' },
-  clockText: { fontSize: 12, color: '#22c55e', fontWeight: 600, fontVariantNumeric: 'tabular-nums' },
-  syncText: { fontSize: 10, color: 'var(--text-muted)' },
+  // ── NEW: sync flash banner ──
+  syncBanner: {
+    position: 'fixed', top: 16, left: '50%', transform: 'translateX(-50%)',
+    display: 'flex', alignItems: 'center', gap: 7,
+    padding: '7px 16px', borderRadius: 999, zIndex: 200,
+    background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)',
+    fontSize: 12, fontWeight: 600, color: '#22c55e',
+    transition: 'opacity 0.3s ease, transform 0.3s ease',
+    whiteSpace: 'nowrap',
+  },
 
-  statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 11 },
-  statCard: { background: 'var(--bg-card, rgba(255,255,255,0.04))', border: '1px solid var(--border-subtle, rgba(255,255,255,0.08))', borderRadius: 15, padding: '16px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, textAlign: 'center' },
-  statIcon: { width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
-  statLabel: { fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 },
-  statValue: { fontWeight: 700, lineHeight: 1, margin: '1px 0' },
-  statSub: { fontSize: 11, color: 'var(--text-muted)', margin: 0 },
+  clockBadge:  { display: 'flex', alignItems: 'center', gap: 6, padding: '5px 11px', borderRadius: 9, background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)' },
+  liveDot:     { width: 7, height: 7, borderRadius: '50%', transition: 'background 0.3s' },
+  clockText:   { fontSize: 12, color: '#22c55e', fontWeight: 600, fontVariantNumeric: 'tabular-nums' },
+  syncText:    { fontSize: 10, color: 'var(--text-muted)' },
 
-  weekRangeBanner: { background: 'var(--bg-card, rgba(255,255,255,0.04))', border: '1px solid var(--border-subtle)', borderLeft: '3px solid var(--accent-secondary)', borderRadius: 13, padding: '12px 16px' },
-  weekRangeTag: { fontSize: 11, padding: '2px 9px', borderRadius: 6, background: 'rgba(92,138,252,0.12)', color: 'var(--accent-secondary)', fontWeight: 600, marginLeft: 4 },
+  statsGrid:   { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 11 },
+  statCard:    { background: 'var(--bg-card, rgba(255,255,255,0.04))', border: '1px solid var(--border-subtle)', borderRadius: 15, padding: '16px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, textAlign: 'center' },
+  statIcon:    { width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
+  statLabel:   { fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 },
+  statValue:   { fontWeight: 700, lineHeight: 1, margin: '1px 0' },
+  statSub:     { fontSize: 11, color: 'var(--text-muted)', margin: 0 },
+
+  weekRangeBanner: { background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderLeft: '3px solid var(--accent-secondary)', borderRadius: 13, padding: '12px 16px' },
+  weekRangeTag:    { fontSize: 11, padding: '2px 9px', borderRadius: 6, background: 'rgba(92,138,252,0.12)', color: 'var(--accent-secondary)', fontWeight: 600, marginLeft: 4 },
 
   insightBanner: { display: 'flex', alignItems: 'flex-start', gap: 12, padding: '13px 16px', borderRadius: 13, background: 'var(--accent-glow, rgba(124,92,252,0.08))', borderLeft: '3px solid var(--accent-primary)' },
-  insightIcon: { width: 28, height: 28, borderRadius: 8, background: 'rgba(45,212,191,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 },
-  insightTitle: { fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 3 },
-  insightBody: { fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 },
+  insightIcon:   { width: 28, height: 28, borderRadius: 8, background: 'rgba(45,212,191,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 },
+  insightTitle:  { fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 3 },
+  insightBody:   { fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 },
 
-  weeklyCard: { background: 'var(--bg-card, rgba(255,255,255,0.04))', border: '1px solid var(--border-subtle)', borderLeft: '3px solid var(--accent-primary)', borderRadius: 13, padding: '14px 16px' },
+  weeklyCard:    { background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderLeft: '3px solid var(--accent-primary)', borderRadius: 13, padding: '14px 16px' },
 
-  sectionLabel: { fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' },
-  tag: { padding: '4px 11px', borderRadius: 7, background: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)', fontSize: 11 },
+  sectionLabel:  { fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' },
+  tag:           { padding: '4px 11px', borderRadius: 7, background: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)', fontSize: 11 },
 
-  chartsRow: { display: 'flex', gap: 13, flexWrap: 'wrap' },
-  card: { background: 'var(--bg-card, rgba(255,255,255,0.04))', border: '1px solid var(--border-subtle, rgba(255,255,255,0.08))', borderRadius: 16, padding: '16px' },
-  cardLabel: { fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.04em', textTransform: 'uppercase', margin: 0 },
+  chartsRow:     { display: 'flex', gap: 13, flexWrap: 'wrap' },
+  card:          { background: 'var(--bg-card, rgba(255,255,255,0.04))', border: '1px solid var(--border-subtle)', borderRadius: 16, padding: '16px' },
+  cardLabel:     { fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.04em', textTransform: 'uppercase', margin: 0 },
 
-  liveChip: { display: 'flex', alignItems: 'center', gap: 5, padding: '3px 9px', borderRadius: 7, background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.18)' },
+  liveChip:      { display: 'flex', alignItems: 'center', gap: 5, padding: '3px 9px', borderRadius: 7, background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.18)' },
 
-  achieveBadge: { fontSize: 10, padding: '3px 10px', borderRadius: 20, background: 'rgba(192,132,252,0.12)', color: 'var(--accent-tertiary)', fontWeight: 600 },
-  badgesGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(88px, 1fr))', gap: 9 },
-  badgeItem: { textAlign: 'center', padding: '11px 7px', borderRadius: 11, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' },
+  achieveBadge:  { fontSize: 10, padding: '3px 10px', borderRadius: 20, background: 'rgba(192,132,252,0.12)', color: 'var(--accent-tertiary)', fontWeight: 600 },
+  badgesGrid:    { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(88px, 1fr))', gap: 9 },
+  badgeItem:     { textAlign: 'center', padding: '11px 7px', borderRadius: 11, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' },
 
-  calGrid: { display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 5, maxWidth: 430, margin: '0 auto' },
+  calGrid:       { display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 5, maxWidth: 430, margin: '0 auto' },
 
-  bottomInsight: { textAlign: 'center', padding: '11px 18px', borderRadius: 11, background: 'var(--bg-card, rgba(255,255,255,0.03))', border: '1px solid var(--border-subtle)', fontSize: 13, color: 'var(--text-secondary)' },
+  bottomInsight: { textAlign: 'center', padding: '11px 18px', borderRadius: 11, background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', fontSize: 13, color: 'var(--text-secondary)' },
 
-  center: { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px 20px' },
-  loadIcon: { width: 46, height: 46, borderRadius: 13, margin: '0 auto 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(124,92,252,0.1)' },
-  retryBtn: { padding: '8px 20px', borderRadius: 9, border: 'none', background: 'var(--accent-primary)', color: '#fff', fontWeight: 600, cursor: 'pointer', fontSize: 13 },
+  center:        { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px 20px' },
+  loadIcon:      { width: 46, height: 46, borderRadius: 13, margin: '0 auto 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(124,92,252,0.1)' },
+  retryBtn:      { padding: '8px 20px', borderRadius: 9, border: 'none', background: 'var(--accent-primary)', color: '#fff', fontWeight: 600, cursor: 'pointer', fontSize: 13 },
 }

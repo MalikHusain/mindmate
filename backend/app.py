@@ -28,130 +28,158 @@ if GEMINI_API_KEY and GEMINI_API_KEY != "your_gemini_api_key_here":
         import google.generativeai as genai
         genai.configure(api_key=GEMINI_API_KEY)
         gemini_model = genai.GenerativeModel("gemini-1.5-flash")
-        print("✅ Gemini API configured successfully")
+        print("[AI] Gemini API configured successfully")
     except Exception as e:
-        print(f"⚠️  Gemini setup failed: {e}")
+        print(f"[AI] Gemini setup failed: {e}")
         gemini_model = None
 else:
-    print("⚠️  No Gemini API key found. Running in DEMO mode.")
+    print("[AI] No Gemini API key found. Running in DEMO mode.")
 
-# ---------- Enhanced Prompt for Motivational Responses ----------
-SYSTEM_PROMPT = """You are MindMate, a compassionate AI mental health companion.
-Analyze the user's history if provided, select a response strategy (Empathy, Guidance, Motivation), and generate an empathetic and context-aware response.
-If the user is feeling negative emotions, motivate them and keep them in a better, positive feeling.
+# ---------- Improved System Prompt ----------
+SYSTEM_PROMPT = """You are MindMate, a compassionate and knowledgeable AI mental health companion.
 
-Respond with ONLY valid JSON:
+Your PRIMARY job is to ACTUALLY ANSWER the user's question or concern with specific, useful information — not just reflect their feelings back at them.
+
+RULES:
+1. ALWAYS address the exact topic the user raised (sleep, anxiety, stress, relationships, etc.)
+2. ALWAYS give concrete, actionable advice or information relevant to their specific situation
+3. Validate their feelings briefly (1 sentence), then spend the rest of the response being genuinely helpful
+4. If they ask a question → answer it directly and completely
+5. If they describe a problem → explain what causes it and give 2-3 specific techniques to help
+6. If they share good news → celebrate it and help them build on it
+7. If they ask a direct factual or identity question (e.g., 'What is your name?', 'How do you work?') → ANSWER DIRECTLY and IMMEDIATELY without validating their feelings first.
+8. Never give vague, generic responses like "I hear you" alone — always add substance
+
+EXAMPLES of BAD responses (never do this):
+- "I hear you. Your feelings are valid. You're not alone." ← no actual help
+- "Thank you for sharing. That takes courage." ← completely empty
+
+EXAMPLES of GOOD responses (always do this):
+- User: "I can't sleep well lately" → Explain that poor sleep often links to cortisol spikes, screen light, or racing thoughts. Suggest: keeping a fixed wake time, avoiding screens 1hr before bed, and the 4-7-8 breathing technique to fall asleep.
+- User: "I feel anxious about work" → Ask what specifically triggers it (deadlines, people, performance?), explain that work anxiety often comes from unclear expectations or perfectionism, and suggest the "worry window" technique — scheduling 15 mins daily to process anxious thoughts so they don't bleed into the whole day.
+- User: "I'm feeling stressed" → Distinguish between acute vs chronic stress, explain what's happening physiologically (cortisol, fight-or-flight), and give the STOP technique: Stop, Take a breath, Observe what's happening, Proceed mindfully.
+
+RESPONSE FORMAT — respond with ONLY valid JSON, no markdown, no extra text:
 {
   "emotion": "Positive" or "Neutral" or "Negative",
-  "severity": 1-10,
-  "empathetic_response": "warm, motivational, and empathetic response (2-3 sentences)",
-  "recommendation": "short actionable coping tip (max 10 words)"
+  "severity": <integer 1-10>,
+  "empathetic_response": "<2-4 sentences: 1 sentence acknowledging their feeling, then 2-3 sentences of specific, useful, actionable information directly addressing what they said>",
+  "recommendation": "<one ultra-specific actionable tip, max 12 words, not generic>"
 }
 
-Keep responses compassionate and uplifting. Be direct and caring."""
+Severity scale: 1-3 = mild/positive, 4-6 = moderate concern, 7-8 = significant distress, 9-10 = crisis."""
 
 
 # ============================================================
-#  DEMO MODE RESPONSES (Concise, Minimal Emojis)
+#  DEMO MODE RESPONSES (Specific, Helpful, Topic-Aware)
 # ============================================================
+
+# Topic-specific fallback responses when Gemini is unavailable
+TOPIC_RESPONSES = {
+    "sleep": {
+        "emotion": "Negative",
+        "severity": 5,
+        "empathetic_response": "Sleep struggles are really draining — your body and mind need that rest. Poor sleep is often caused by inconsistent wake times, blue light from screens, or a racing mind at bedtime. Try keeping a fixed wake-up time even on weekends, avoid screens 45 minutes before bed, and practice the 4-7-8 breathing method: inhale for 4 counts, hold for 7, exhale for 8.",
+        "recommendation": "Set a fixed wake time and do 4-7-8 breathing tonight.",
+    },
+    "anxious|anxiety": {
+        "emotion": "Negative",
+        "severity": 6,
+        "empathetic_response": "Anxiety is genuinely uncomfortable, and I'm glad you're addressing it. It often stems from uncertainty, perfectionism, or feeling like demands exceed your resources. A proven technique is the 'worry window': set aside 15 minutes each day specifically to process anxious thoughts, so they don't spill into your whole day. When anxiety hits outside that window, note it down and save it for later.",
+        "recommendation": "Try the worry window: 15 mins daily to process anxious thoughts.",
+    },
+    "stress|stressed": {
+        "emotion": "Negative",
+        "severity": 6,
+        "empathetic_response": "Stress takes a real toll when it piles up — your body is literally in fight-or-flight mode. The STOP technique can help in the moment: Stop what you're doing, Take one slow breath, Observe what's happening in your body and thoughts without judgment, then Proceed mindfully. For longer-term stress, try identifying your top stressor and breaking it into the single next smallest action.",
+        "recommendation": "Use STOP: Stop, Take a breath, Observe, Proceed mindfully.",
+    },
+    "lonely|alone|isolated": {
+        "emotion": "Negative",
+        "severity": 6,
+        "empathetic_response": "Loneliness is one of the most painful feelings, and it's more common than most people admit. Research shows that even brief, low-stakes interactions — a text to an old friend, joining an online community around a hobby, or a walk in a busy area — can meaningfully reduce it. You don't need deep connection right away; small moments of feeling seen add up.",
+        "recommendation": "Send one message to someone you haven't talked to recently.",
+    },
+    "depress|hopeless|worthless|empty|numb": {
+        "emotion": "Negative",
+        "severity": 8,
+        "empathetic_response": "What you're feeling sounds really heavy, and I want you to know it makes sense that you'd feel this way — depression flattens everything. One small but evidence-backed step is behavioral activation: do one tiny enjoyable or meaningful action today, even if you don't feel like it, because action often comes before motivation (not after). Please also consider speaking to a counselor — iCall (9152987821) offers free sessions.",
+        "recommendation": "Do one small enjoyable thing today — action sparks motivation.",
+    },
+    "angry|frustrated|rage": {
+        "emotion": "Negative",
+        "severity": 6,
+        "empathetic_response": "Anger makes complete sense when your boundaries are crossed or things feel unfair. To cool the physiological response quickly, try the 'cold water reset': splash cold water on your face or hold ice — it activates the dive reflex and slows your heart rate within seconds. Once calmer, ask yourself: what unmet need or threat is underneath this anger?",
+        "recommendation": "Splash cold water on your face to activate the calm reflex.",
+    },
+    "panic|overwhelm|overwhelmed": {
+        "emotion": "Negative",
+        "severity": 7,
+        "empathetic_response": "Feeling overwhelmed is your brain's way of saying there's too much in the queue at once. The 5-4-3-2-1 grounding technique works well right now: name 5 things you can see, 4 you can physically touch, 3 you hear, 2 you can smell, 1 you can taste. This pulls your nervous system out of panic mode by anchoring you in the present.",
+        "recommendation": "Do 5-4-3-2-1 grounding: name things you see, touch, hear.",
+    },
+    "tired|exhausted|burnout": {
+        "emotion": "Negative",
+        "severity": 5,
+        "empathetic_response": "Exhaustion — especially emotional exhaustion — is a real signal that your system needs recovery, not just more sleep. Rest comes in many forms: physical (sleep, stillness), mental (no problem-solving), social (time alone if drained), and creative (making something). Identify which type of rest you're most depleted in and prioritize that specifically today.",
+        "recommendation": "Identify your rest type: physical, mental, social, or creative.",
+    },
+    "happy|great|wonderful|amazing|excited|good|grateful|joy|awesome|proud|blessed|peaceful|hopeful|inspired|content": {
+        "emotion": "Positive",
+        "severity": 2,
+        "empathetic_response": "That's genuinely wonderful — hold onto this feeling. Positive emotions actually broaden your thinking and build long-term resilience, so this isn't just a nice moment, it's doing real good. Consider anchoring it: write down specifically what contributed to this feeling so you can intentionally create more of those conditions.",
+        "recommendation": "Write what caused this feeling — recreate those conditions.",
+    },
+    "who are you|your name|what is your name|who is mindmate|what is mindmate": {
+        "emotion": "Positive",
+        "severity": 1,
+        "empathetic_response": "I'm MindMate, your AI mental health companion! I'm designed to listen, support you, and help you understand your emotional patterns better. You can talk to me about your feelings, keep a journal, or track your mood and streaks on the dashboard.",
+        "recommendation": "Ask me how I can help with your stress or sleep!",
+    },
+    "how are you|how do you feel": {
+        "emotion": "Positive",
+        "severity": 1,
+        "empathetic_response": "I'm doing great and I'm ready to support you! As an AI, I don't have feelings in the human sense, but I'm fully dedicated to being here for you and helping you navigate whatever is on your mind today.",
+        "recommendation": "Tell me about one thing that happened in your day today.",
+    },
+}
+
+CRISIS_KEYWORDS = ["suicide", "kill myself", "end my life", "self-harm", "hurt myself", "don't want to live", "want to die", "no reason to live"]
+
 
 def get_fallback_response(message, history_text=""):
-    """Concise motivational response system with minimal emojis."""
+    """Topic-aware fallback responses when Gemini is unavailable."""
     msg_lower = message.lower()
 
-    # --- Crisis Detection ---
-    crisis_keywords = ["suicide", "kill myself", "end my life", "self-harm", "hurt myself", "don't want to live", "want to die"]
-    if any(kw in msg_lower for kw in crisis_keywords):
+    # Crisis check first
+    if any(kw in msg_lower for kw in CRISIS_KEYWORDS):
         return {
             "emotion": "Negative",
             "severity": 10,
-            "empathetic_response": "I hear you. Your life matters. Please reach out to a crisis counselor now.",
-            "recommendation": "Call 988 (US) or iCall 9152987821 (India). Help is available 24/7.",
+            "empathetic_response": "I hear you, and I'm taking what you said seriously — your life has value even when it doesn't feel that way. Please reach out to a crisis counselor right now who is trained to help with exactly this. In India, iCall is available at 9152987821 (Mon–Sat 8am–10pm) and AASRA at 9820466627 (24/7). In the US, call or text 988.",
+            "recommendation": "Call AASRA 9820466627 (India) or 988 (US) right now.",
         }
 
-    # --- Positive Responses (Concise) ---
-    positive_keywords = ["happy", "great", "wonderful", "amazing", "love", "excited", "grateful",
-                         "thankful", "joy", "good day", "awesome", "fantastic", "proud", "accomplished",
-                         "blessed", "peaceful", "calm", "hopeful", "inspired", "content"]
-    if any(kw in msg_lower for kw in positive_keywords):
-        responses = [
-            {
-                "empathetic_response": "That's wonderful to hear! I'm so happy for you.",
-                "recommendation": "Journal this moment. Save it for later.",
-                "severity": 2,
-            },
-            {
-                "empathetic_response": "Your positivity is inspiring. Keep shining!",
-                "recommendation": "Share your joy with someone today.",
-                "severity": 2,
-            },
-            {
-                "empathetic_response": "Love this energy! You deserve this happiness.",
-                "recommendation": "Do a 2-minute gratitude meditation.",
-                "severity": 2,
-            },
-        ]
-        choice = random.choice(responses)
-        return {"emotion": "Positive", **choice}
+    # Match topic keywords for specific responses
+    for keywords, response in TOPIC_RESPONSES.items():
+        if any(kw in msg_lower for kw in keywords.split("|")):
+            return response
 
-    # --- Negative Responses (Concise, Minimal Emojis) ---
-    negative_keywords = ["sad", "depressed", "anxious", "stressed", "worried", "lonely", "angry",
-                         "frustrated", "tired", "exhausted", "overwhelmed", "hopeless", "scared",
-                         "afraid", "panic", "crying", "broken", "worthless", "empty", "numb",
-                         "hate", "terrible", "horrible", "miserable", "pain", "suffering",
-                         "can't take", "falling apart", "giving up", "lost", "stuck",
-                         "not feeling well", "not good", "feeling low", "feeling down", "tension",
-                         "exam", "fail", "failed", "tough"]
-
-    if any(kw in msg_lower for kw in negative_keywords):
-        severity = 7 if any(w in msg_lower for w in ["hopeless", "overwhelmed", "depressed", "worthless", "empty", "numb", "panic", "giving up", "falling apart"]) else 5
-
-        responses = [
-            {
-                "empathetic_response": "I hear you. Your feelings are valid. You're not alone.",
-                "recommendation": "Try box breathing: In 4, hold 4, out 4.",
-            },
-            {
-                "empathetic_response": "Thank you for sharing. That takes real courage.",
-                "recommendation": "Name 5 things you can see right now.",
-            },
-            {
-                "empathetic_response": "This moment is hard, but it will pass. You've survived tough days before.",
-                "recommendation": "Take a 10-minute walk outside.",
-            },
-            {
-                "empathetic_response": "I'm here with you. You don't have to go through this alone.",
-                "recommendation": "Drink a glass of water. Stay hydrated.",
-            },
-            {
-                "empathetic_response": "Your pain is real, but so is your strength. Keep going.",
-                "recommendation": "Write down 3 things that went right today.",
-            },
-            {
-                "empathetic_response": "I see you struggling, and I'm proud of you for reaching out.",
-                "recommendation": "Listen to your favorite song right now.",
-            },
-        ]
-        choice = random.choice(responses)
-        return {"emotion": "Negative", "severity": severity, **choice}
-
-    # --- Neutral / Default (Concise) ---
-    responses = [
+    # Generic neutral fallback
+    neutral_responses = [
         {
-            "empathetic_response": "Thank you for being here. How are you really feeling today?",
-            "recommendation": "Take 2 mindful breaths. Just notice.",
+            "empathetic_response": "I'm listening and I'm here to support you in whatever way I can. Could you tell me more about what's going on or what exactly is on your mind? The more you share, the better I can help you process things.",
+            "recommendation": "Tell me more — what's the primary thing you're thinking about?",
+            "severity": 3,
         },
         {
-            "empathetic_response": "I appreciate you opening up. What's on your mind?",
-            "recommendation": "Do a quick body scan from head to toe.",
-        },
-        {
-            "empathetic_response": "This is your safe space. Share whatever feels right.",
-            "recommendation": "Notice one thing you're grateful for.",
+            "empathetic_response": "I hear you, and I'm dedicated to helping you navigate this. Sometimes it helps to break down what you're feeling into specific thoughts or situations — what's the one thing that stands out most to you right now?",
+            "recommendation": "Try to pinpoint the specific thought that's most present.",
+            "severity": 3,
         },
     ]
-    choice = random.choice(responses)
-    return {"emotion": "Neutral", "severity": 3, **choice}
+    choice = random.choice(neutral_responses)
+    return {"emotion": "Neutral", **choice}
 
 
 def call_gemini(user_message, history_text=""):
@@ -160,21 +188,28 @@ def call_gemini(user_message, history_text=""):
         return get_fallback_response(user_message, history_text)
 
     try:
-        prompt_with_history = f"{SYSTEM_PROMPT}\n\n"
-        if history_text:
-            prompt_with_history += f"Recent User History:\n{history_text}\n\n"
-            prompt_with_history += "Consider the user's recent history to select an appropriate response strategy (Empathy, Guidance, Motivation).\n\n"
-        prompt_with_history += f"Current User message: {user_message}"
+        prompt = SYSTEM_PROMPT + "\n\n"
 
-        response = gemini_model.generate_content(prompt_with_history)
+        if history_text:
+            prompt += f"User's recent conversation history (for context only — still focus on their current message):\n{history_text}\n\n"
+
+        prompt += f"User's current message: {user_message}\n\nRespond with ONLY the JSON object."
+
+        response = gemini_model.generate_content(prompt)
         text = response.text.strip()
 
+        # Strip markdown code fences if present
         if text.startswith("```"):
             text = re.sub(r"^```(?:json)?\s*", "", text)
             text = re.sub(r"\s*```$", "", text)
 
         result = json.loads(text)
         result["severity"] = int(result.get("severity", 5))
+
+        # Validate required fields
+        if "empathetic_response" not in result or not result["empathetic_response"].strip():
+            raise ValueError("Empty response from Gemini")
+
         return result
 
     except Exception as e:
@@ -202,8 +237,6 @@ def github_auth():
     data = request.get_json()
     code = data.get("code")
     
-    # In a real app, you'd exchange 'code' for an access token here.
-    # For now, we'll return mock data to allow the frontend to proceed.
     mock_user = {
         "name": "GitHub User",
         "email": f"github_{code[:8]}@example.com",
@@ -225,12 +258,14 @@ def chat():
         return jsonify({"error": "Message is required"}), 400
 
     user_id = data.get("user_id", "default_user")
+
+    # Build recent history for context (chronological order)
     recent_moods = get_last_n_moods(5, user_id=user_id)
-    history_text = "\n".join([f"- User: {m.get('user_message', '')} (Emotion: {m.get('emotion', '')}, Severity: {m.get('severity', '')})" for m in recent_moods if 'user_message' in m])
-    
-    # Reverse history_text so chronological order makes sense
-    history_lines = history_text.split('\n')
-    history_lines.reverse()
+    history_lines = [
+        f"- User said: \"{m.get('user_message', '')}\" | Emotion: {m.get('emotion', '')} | Severity: {m.get('severity', '')}"
+        for m in reversed(recent_moods)
+        if m.get('user_message')
+    ]
     history_text = "\n".join(history_lines)
 
     result = call_gemini(user_message, history_text)
@@ -244,7 +279,9 @@ def chat():
         user_id=user_id
     )
 
-    is_crisis = result["severity"] >= 8 and result["emotion"] == "Negative"
+    # Crisis threshold: severity >= 8 AND negative emotion, OR any crisis keyword hit
+    crisis_keywords_hit = any(kw in user_message.lower() for kw in CRISIS_KEYWORDS)
+    is_crisis = crisis_keywords_hit or (result["severity"] >= 8 and result["emotion"] == "Negative")
 
     response_data = {
         "id": entry_id,
@@ -257,7 +294,7 @@ def chat():
     }
 
     if is_crisis:
-        response_data["crisis_message"] = "Crisis helpline: 988 (US) | iCall 9152987821 (India)"
+        response_data["crisis_message"] = "Crisis helplines: AASRA 9820466627 | iCall 9152987821 (India) | 988 (US) | 116 123 (UK)"
 
     return jsonify(response_data)
 
@@ -475,12 +512,10 @@ def get_history():
     user_id = request.args.get("user_id", "default_user")
     db = get_db()
     
-    # Fetch from all three collections
     conversations = list(db.conversations.find({"user_id": user_id}).sort("timestamp", -1))
     journal = list(db.journal.find({"user_id": user_id}).sort("timestamp", -1))
     gratitude = list(db.gratitude.find({"user_id": user_id}).sort("timestamp", -1))
     
-    # Unified list
     history = []
     
     for c in conversations:
@@ -490,8 +525,8 @@ def get_history():
             "date": c["timestamp"],
             "emotion": c.get("emotion"),
             "severity": c.get("severity"),
-            "last_message": c.get("user_message", ""), # Fix key name
-            "messages_count": 1 # For now
+            "last_message": c.get("user_message", ""),
+            "messages_count": 1
         })
         
     for j in journal:
@@ -512,10 +547,10 @@ def get_history():
             "items": g.get("items", [])
         })
         
-    # Sort by date descending
     history.sort(key=lambda x: x["date"], reverse=True)
     
     return jsonify({"history": history})
+
 
 @app.route("/api/user/conversations", methods=["DELETE"])
 def clear_conversations():
@@ -523,9 +558,10 @@ def clear_conversations():
     delete_user_conversations(user_id)
     return jsonify({"message": "Chat history has been cleared."})
 
+
 if __name__ == "__main__":
     init_db()
-    print("\n🧠 MindMate Backend running on http://localhost:5000")
+    print("\n[SERVER] MindMate Backend running on http://localhost:5000")
     print(f"   AI Mode: {'Gemini API' if gemini_model else 'Demo'}")
     print(f"   Database: MongoDB Atlas\n")
     app.run(host='0.0.0.0', debug=True, port=5000, use_reloader=False)

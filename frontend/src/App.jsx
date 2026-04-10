@@ -16,6 +16,9 @@ import {
 } from 'lucide-react'
 import { ThemeProvider, useTheme } from './ThemeContext'
 
+import DailyCheckInModal from './components/DailyCheckInModal'
+import { useDailyCheckIn } from './hooks/useDailyCheckIn'
+
 // Existing pages
 import LandingPage from './pages/LandingPage'
 import LoginPage from './pages/LoginPage'
@@ -28,7 +31,7 @@ import GratitudeJournalPage from './pages/GratitudeJournalPage'
 import CrisisSupportPage from './pages/CrisisSupportPage'
 import ProfileSettingsPage from './pages/ProfileSettingsPage'
 import RegisterPage from './pages/RegisterPage'
-import DailyCheckInModal, { useDailyCheckIn } from './components/DailyCheckInModal'
+
 
 
 // ─── Nav items ───────────────────────────────────────────────────────────────

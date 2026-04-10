@@ -470,13 +470,17 @@ export default function LoginPage() {
       return;
     }
 
+    // Store user info
+    const user = {
+      name: email.split('@')[0],
+      email: email,
+      provider: 'email'
+    };
+    localStorage.setItem('user', JSON.stringify(user));
+
     // Track login in backend
     try {
-      await trackLogin({
-        email: email,
-        name: email.split('@')[0],
-        provider: 'email'
-      });
+      await trackLogin(user);
     } catch (err) {
       console.error("Failed to track login:", err);
     }

@@ -33,12 +33,12 @@ def get_db():
                 _client = MongoClient(MONGO_URI)
 
             db_name = os.getenv("MONGO_DB_NAME", "mindmate")
-            print(f"📡 [DATABASE] Initializing connection to: {MONGO_URI[:25]}...")
-            print(f"✅ [DATABASE] Connected to MongoDB Atlas: {db_name}")
+            print(f"[DB] Initializing connection to: {MONGO_URI[:25]}...")
+            print(f"[DB] Connected to MongoDB Atlas: {db_name}")
             _db = _client[db_name]
 
         except Exception as e:
-            print(f"❌ MongoDB Connection Error: {e}")
+            print(f"[ERROR] MongoDB Connection Error: {e}")
             print("   Please check your MONGO_URI in .env file")
             raise
     return _db
@@ -59,9 +59,9 @@ def init_db():
         db.achievements.create_index("badge_id")
         db.user_stats.create_index("user_id")
         
-        print("✅ MongoDB indexes created successfully")
+        print("[DB] MongoDB indexes created successfully")
     except Exception as e:
-        print(f"⚠️ Index creation warning: {e}")
+        print(f"[DB] Index creation warning: {e}")
 
 
 def _id_str(doc):
@@ -116,8 +116,8 @@ def save_conversation(user_message, ai_response, emotion, severity, recommendati
     }
     result = db.conversations.insert_one(doc)
     doc_count = db.conversations.count_documents({})
-    print(f"💾 [DATABASE] Conversation saved! ID: {result.inserted_id} | User: {user_id}")
-    print(f"📊 [DATABASE] Total documents in 'conversations': {doc_count}")
+    print(f"[DB] Conversation saved! ID: {result.inserted_id} | User: {user_id}")
+    print(f"[DB] Total documents in 'conversations': {doc_count}")
     _check_achievements(db, user_id)
     return str(result.inserted_id)
 
@@ -500,7 +500,7 @@ def delete_user_data(user_id):
                      res3.deleted_count + res4.deleted_count + 
                      res5.deleted_count)
     
-    print(f"✅ [DATABASE] Deleted {deleted_total} records for {user_id}")
+    print(f"[DB] Deleted {deleted_total} records for {user_id}")
     return True
 
 
@@ -514,7 +514,7 @@ def delete_user_account(user_id):
     db.achievements.delete_many({"user_id": user_id})
     db.user_stats.delete_many({"user_id": user_id})
     db.login_logs.delete_many({"user_id": user_id})
-    print(f"🚫 [DATABASE] Account and history deleted for user: {user_id}")
+    print(f"[ACCOUNT] Account and history deleted for user: {user_id}")
     return True
 
 def delete_user_conversations(user_id):
@@ -526,5 +526,5 @@ def delete_user_conversations(user_id):
         {"user_id": user_id},
         {"$set": {"total_conversations": 0, "current_streak": 0}}
     )
-    print(f"💬 [DATABASE] Deleted {res.deleted_count} chats for {user_id}")
+    print(f"[DB] Deleted {res.deleted_count} chats for {user_id}")
     return True
