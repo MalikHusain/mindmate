@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Send, Lightbulb, Trash2, Sparkles, Mic, MicOff, Loader2 } from 'lucide-react'
 
-import { sendMessage } from '../api'
+import { sendMessage, getConversations } from '../api'
 import { EmotionBadge, SeverityMeter } from '../components/EmotionBadge'
 import CrisisAlert from '../components/CrisisAlert'
 import TypingIndicator from '../components/TypingIndicator'
@@ -35,17 +35,36 @@ export default function ChatPage() {
 
   const location = useLocation()
   const navigate = useNavigate()
-  const [authLoading, setAuthLoading] = useState(false)
-  const [authError, setAuthError] = useState(null)
 
   useEffect(() => {
     const loadHistory = async () => {
       try {
-        const data = await fetch('/api/conversations?user_id=' + (localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')).email : 'default_user')).then(r => r.json())
+        const userStr = localStorage.getItem('user')
+        const user = userStr ? JSON.parse(userStr) : null
+        const userId = user?.email || 'default_user'
+        
+        const data = await getConversations(userId)
         if (data.conversations?.length) {
           const pastMsgs = []
           data.conversations.forEach(conv => {
-            conv.messages.forEach(m => pastMsgs.push({ ...m, timestamp: conv.timestamp }))
+            // Each conversation doc in DB is a pair: user message + AI response
+            if (conv.user_message) {
+              pastMsgs.push({ 
+                role: 'user', 
+                text: conv.user_message, 
+                timestamp: conv.timestamp 
+              })
+            }
+            if (conv.ai_response) {
+              pastMsgs.push({ 
+                role: 'ai', 
+                text: conv.ai_response, 
+                emotion: conv.emotion, 
+                severity: conv.severity, 
+                recommendation: conv.recommendation,
+                timestamp: conv.timestamp 
+              })
+            }
           })
           // Prepend past messages to the welcome message
           setMessages([WELCOME_MSG, ...pastMsgs])
@@ -61,41 +80,6 @@ export default function ChatPage() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
 
-  // Handle GitHub Redirect Callback
-  useEffect(() => {
-    const params = new URLSearchParams(location.search)
-    const code = params.get('code')
-    if (code) {
-      handleGithubCallback(code)
-    }
-  }, [location])
-
-  const handleGithubCallback = async (code) => {
-    setAuthLoading(true)
-    setAuthError(null)
-    try {
-      const response = await fetch('/api/auth/github', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code })
-      })
-      if (!response.ok) throw new Error('GitHub authentication failed')
-      const data = await response.json()
-      localStorage.setItem('token', data.token)
-      localStorage.setItem('user', JSON.stringify(data.user))
-      try {
-        await trackLogin(data.user)
-      } catch (err) {
-        console.error('Failed to track GitHub login:', err)
-      }
-      navigate('/chat', { replace: true })
-    } catch (err) {
-      console.error('GitHub Auth Error:', err)
-      setAuthError('Failed to sign in with GitHub. Please try again.')
-    } finally {
-      setAuthLoading(false)
-    }
-  }
 
   // Voice Recognition Setup
   useEffect(() => {
@@ -205,25 +189,6 @@ export default function ChatPage() {
 
   return (
     <div className="chat-container page-enter">
-      {/* Auth Loading / Error Overlays */}
-      {authLoading && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center">
-          <div className="glass-card-static p-8 flex flex-col items-center">
-            <Loader2 className="w-10 h-10 text-teal-400 animate-spin mb-4" />
-            <p className="font-bold text-white">Authenticating with GitHub...</p>
-          </div>
-        </div>
-      )}
-
-      {authError && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 animate-bounce">
-          <div className="bg-red-500 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3">
-            <span>Warning:</span>
-            <span className="font-bold text-sm">{authError}</span>
-            <button onClick={() => setAuthError(null)} className="ml-2 hover:opacity-75">x</button>
-          </div>
-        </div>
-      )}
 
       {/* Header */}
       <div className="page-header flex items-center justify-between flex-shrink-0">
@@ -311,7 +276,7 @@ export default function ChatPage() {
           </p>
         )}
         <p className="text-center text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
-          MindMate is not a substitute for professional mental health care.
+          
         </p>
       </div>
     </div>

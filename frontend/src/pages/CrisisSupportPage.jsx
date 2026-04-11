@@ -453,7 +453,7 @@ export default function CrisisSupportPage() {
         }}
       >
         <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-          ⚠️ MindMate is not a substitute for professional mental health care.
+          
           If you are in crisis, please contact a licensed professional or emergency services.
         </p>
       </div>

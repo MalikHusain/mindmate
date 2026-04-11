@@ -228,12 +228,14 @@ const styles = `
   }
 
   .mm-social-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: flex;
+    justify-content: center;
     gap: 10px;
   }
 
   .mm-social-btn {
+    flex: 1;
+    max-width: 200px;
     height: 48px;
     border: 1.5px solid #e5e7eb;
     border-radius: 12px;
@@ -342,11 +344,6 @@ const BrainIcon = () => (
   </svg>
 );
 
-const GitHubIcon = () => (
-  <svg width="17" height="17" viewBox="0 0 17 17" fill="none">
-    <path fillRule="evenodd" clipRule="evenodd" d="M8.5 1a7.5 7.5 0 00-2.372 14.621c.375.069.512-.163.512-.362 0-.178-.006-.65-.01-1.276-2.086.453-2.526-.504-2.526-.504-.341-.867-.832-1.098-.832-1.098-.68-.465.052-.455.052-.455.751.053 1.146.772 1.146.772.667 1.143 1.75.813 2.177.622.068-.483.261-.813.475-.1C5.35 12.748 3.524 12.07 3.524 9.058c0-.866.309-1.574.816-2.129-.082-.2-.354-1.007.078-2.1 0 0 .666-.213 2.181.813A7.6 7.6 0 018.5 5.397a7.6 7.6 0 011.9.256c1.515-1.026 2.18-.812 2.18-.812.433 1.092.16 1.899.079 2.099.508.555.815 1.263.815 2.129 0 3.02-1.84 3.687-3.592 3.882.283.243.534.724.534 1.46 0 1.054-.01 1.905-.01 2.163 0 .2.135.435.515.361A7.502 7.502 0 008.5 1z" fill="#24292e"/>
-  </svg>
-);
 
 const GoogleIcon = () => (
   <svg width="17" height="17" viewBox="0 0 17 17">
@@ -444,11 +441,6 @@ export default function RegisterPage() {
   const handleSocialLogin = (provider) => {
     if (provider === 'google') {
       googleLogin();
-    } else if (provider === 'github') {
-      const GITHUB_CLIENT_ID = "Ov23liNbgYQbGVGbuhYj";
-      const REDIRECT_URI = window.location.origin + "/chat";
-
-      window.location.href = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&scope=user:email`;
     }
   };
 
@@ -570,9 +562,6 @@ export default function RegisterPage() {
             </div>
 
             <div className="mm-social-row">
-              <button type="button" className="mm-social-btn" onClick={() => handleSocialLogin("github")}>
-                <GitHubIcon /> GitHub
-              </button>
               <button type="button" className="mm-social-btn" onClick={() => handleSocialLogin("google")}>
                 <GoogleIcon /> Google
               </button>
